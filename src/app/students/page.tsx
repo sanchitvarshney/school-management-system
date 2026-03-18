@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -18,8 +18,9 @@ export default function StudentsPage() {
   const [db, setDbState] = useState<SmsDb | null>(null);
   const [sessionId, setSessionId] = useState<string>("2025-2026");
   // top filters
-  const [searchClassId, setSearchClassId] = useState<string>("");
-  const [showResults, setShowResults] = useState<boolean>(false);
+  const [filterGradeId, setFilterGradeId] = useState<string>("");
+  const [filterSectionIds, setFilterSectionIds] = useState<string[]>([]);
+  const classScrollRef = useRef<HTMLDivElement>(null);
   const [results, setResults] = useState<Student[]>([]);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
@@ -41,25 +42,46 @@ export default function StudentsPage() {
   const classes = s?.classes ?? [];
   const sections = s?.sections ?? [];
 
-  function clearSearch() {
-    setSearchClassId("");
-    setResults([]);
-    setSelectedStudentId(null);
-    setShowResults(false);
+  // Default to Grade 8 with 8A selected so 8A–8K show on load (like reference design)
+  useEffect(() => {
+    if (!db || filterGradeId !== "") return;
+    const grade8 = classes.find((c) => c.name === "8");
+    if (grade8) {
+      setFilterGradeId(grade8.id);
+      const grade8Sections = sections.filter((sec) => sec.classId === grade8.id);
+      const firstSection = grade8Sections[0];
+      if (firstSection) setFilterSectionIds([firstSection.id]);
+    }
+  }, [db, classes, sections, filterGradeId]);
+
+  const sectionsForGrade = useMemo(
+    () => sections.filter((sec) => (filterGradeId ? sec.classId === filterGradeId : false)),
+    [sections, filterGradeId]
+  );
+
+  function toggleSection(id: string) {
+    setFilterSectionIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   }
 
-  function fetchStudents() {
-    const cls = searchClassId.trim();
+  function selectAllSectionsForGrade() {
+    if (sectionsForGrade.length === 0) return;
+    const allIds = sectionsForGrade.map((s) => s.id);
+    const allSelected = allIds.every((id) => filterSectionIds.includes(id));
+    setFilterSectionIds(allSelected ? [] : allIds);
+  }
 
-    let out: Student[] = students;
+  function scrollClassRow(dir: -1 | 1) {
+    const el = classScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 220, behavior: "smooth" });
+  }
 
-    if (cls) {
-      out = out.filter((st) => st.classId === cls);
-    }
-
-    setResults(out);
-    setSelectedStudentId(out[0]?.id ?? null);
-    setShowResults(true);
+  // Clear section selection when user changes grade (not on initial default)
+  function onGradeChange(gradeId: string) {
+    setFilterGradeId(gradeId);
+    setFilterSectionIds([]);
   }
 
   function upsertStudent(nextStudent: Student) {
@@ -99,6 +121,36 @@ export default function StudentsPage() {
     [results, selectedStudentId]
   );
 
+  const resultsFromFilters = useMemo(() => {
+    const grade = filterGradeId.trim();
+    let out: Student[] = students;
+    if (grade) {
+      out = out.filter((st) => st.classId === grade);
+    }
+    if (filterSectionIds.length > 0) {
+      const set = new Set(filterSectionIds);
+      out = out.filter((st) => set.has(st.sectionId));
+    }
+    return out;
+  }, [students, filterGradeId, filterSectionIds]);
+
+  useEffect(() => {
+    setResults(resultsFromFilters);
+    setSelectedStudentId(resultsFromFilters[0]?.id ?? null);
+  }, [resultsFromFilters]);
+
+  const showResults = filterGradeId !== "";
+
+  const filterSummaryTitle = useMemo(() => {
+    const g = classes.find((c) => c.id === filterGradeId)?.name ?? "All";
+    if (filterSectionIds.length === 0) return filterGradeId ? `Grade: ${g}` : "All students";
+    const names = filterSectionIds
+      .map((id) => sectionNameById.get(id))
+      .filter(Boolean)
+      .join(", ");
+    return names ? `${g}: ${names}` : `Grade: ${g}`;
+  }, [classes, filterGradeId, filterSectionIds, sectionNameById]);
+
   return (
     <AppShell>
       <div className="max-w-6xl mx-auto space-y-4">
@@ -106,75 +158,101 @@ export default function StudentsPage() {
             <CardHeader title="Attendance & Students" subtitle="Select grade, class, date and student name" />
             <CardBody>
               <div className="space-y-4">
-                {/* Top blue filter bar (grade / class) */}
-                <div className="rounded-2xl bg-[#01325B] text-white px-4 py-4 flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide opacity-90">
-                        Select Grade
-                      </span>
-                      <select
-                        className="h-9 min-w-[160px] rounded-lg border-0 bg-white px-3 text-sm text-gray-900"
-                        value={searchClassId}
-                        onChange={(e) => setSearchClassId(e.target.value)}
-                      >
-                        <option value="">All Grades</option>
-                        {classes.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide opacity-90">
-                        Select Class
-                      </span>
-                      {classes.map((c) => {
-                        const active = c.id === searchClassId;
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => setSearchClassId(active ? "" : c.id)}
-                            className={[
-                              "h-8 rounded-full px-3 text-xs font-semibold border transition-colors",
-                              active
-                                ? "bg-white text-[#01325B] border-white"
-                                : "bg-transparent text-white border-white/30 hover:bg-white/10",
-                            ].join(" ")}
-                          >
-                            {c.name}
-                          </button>
-                        );
-                      })}
-                      {classes.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSearchClassId("");
-                          }}
-                          className="ml-1 h-8 rounded-full px-3 text-xs font-semibold border border-white/40 bg-white/10 hover:bg-white/20"
-                        >
-                          Select All
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-end gap-3">
-                    <Button
-                      variant="secondary"
-                      className="h-9 rounded-lg bg-white/10 text-white border border-white/30 hover:bg-white/20 text-xs"
-                      onClick={clearSearch}
+                {/* Filter bar: grade dropdown + scrollable class (section) checkboxes */}
+                <div className="rounded-xl bg-[#002147] text-white px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                  <div className="flex shrink-0 items-center">
+                    <select
+                      className="h-10 min-w-[200px] rounded-lg border border-gray-300 bg-white px-3 pr-9 text-sm text-gray-500 shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/30 appearance-none bg-[length:14px] bg-[right_10px_center] bg-no-repeat"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                      }}
+                      value={filterGradeId}
+                      onChange={(e) => onGradeChange(e.target.value)}
                     >
-                      Clear
-                    </Button>
-                    <Button className="h-9 rounded-lg px-4 text-sm" onClick={fetchStudents}>
-                      Fetch
-                    </Button>
+                      <option value="">Select Grade</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id} className="text-gray-900">
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <span className="shrink-0 self-center text-sm font-bold text-white sm:pt-2 sm:self-start">
+                      Select Class
+                    </span>
+                    <div className="flex min-h-[44px] min-w-0 flex-1 items-stretch overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                      <button
+                        type="button"
+                        aria-label="Scroll classes left"
+                        onClick={() => scrollClassRow(-1)}
+                        disabled={!filterGradeId || sectionsForGrade.length === 0}
+                        className="flex w-9 shrink-0 items-center justify-center border-r border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100 disabled:opacity-40"
+                      >
+                        &lt;
+                      </button>
+                      <div
+                        ref={classScrollRef}
+                        className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto overflow-y-hidden py-1"
+                      >
+                        {filterGradeId === "" ? (
+                          <span className="px-4 py-2 text-sm text-gray-400">
+                            Select a grade to see classes
+                          </span>
+                        ) : sectionsForGrade.length === 0 ? (
+                          <span className="px-4 py-2 text-sm text-gray-400">
+                            No sections for this grade
+                          </span>
+                        ) : (
+                          sectionsForGrade.map((sec, i) => {
+                            const cn = classNameById.get(sec.classId) ?? "";
+                            const label =
+                              cn && sec.name
+                                ? `${cn.replace(/\s/g, "")}${sec.name}`
+                                : (sectionNameById.get(sec.id) ?? sec.name);
+                            const checked = filterSectionIds.includes(sec.id);
+                            return (
+                              <label
+                                key={sec.id}
+                                className={[
+                                  "flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-4 py-2 text-sm",
+                                  checked ? "text-gray-800" : "text-gray-400",
+                                  i > 0 ? "border-l border-gray-200" : "",
+                                ].join(" ")}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleSection(sec.id)}
+                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="font-medium">{label}</span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Scroll classes right"
+                        onClick={() => scrollClassRow(1)}
+                        disabled={!filterGradeId || sectionsForGrade.length === 0}
+                        className="flex w-9 shrink-0 items-center justify-center border-l border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100 disabled:opacity-40"
+                      >
+                        &gt;
+                      </button>
+                      <button
+                        type="button"
+                        onClick={selectAllSectionsForGrade}
+                        disabled={!filterGradeId || sectionsForGrade.length === 0}
+                        className="shrink-0 border-l border-gray-200 bg-[#00B4D8] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-[#0096c7] disabled:opacity-40"
+                      >
+                        Select All
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
               </div>
           </CardBody>
@@ -184,7 +262,7 @@ export default function StudentsPage() {
           <div className="grid grid-cols-1 gap-4">
           <Card>
             <CardHeader
-              title="Grade: 8A"
+              title={filterSummaryTitle}
               subtitle={`Students: ${results.length}`}
               right={
                 <div className="flex items-center gap-2">
@@ -194,11 +272,15 @@ export default function StudentsPage() {
                     className="h-8 w-48 rounded-lg text-sm"
                     onChange={(e) => {
                       const value = e.target.value.toLowerCase();
-                      const filtered = students.filter(
-                        (st) =>
-                          (!searchClassId || st.classId === searchClassId) &&
-                          st.name.toLowerCase().includes(value)
-                      );
+                      const filtered = students.filter((st) => {
+                        if (filterGradeId && st.classId !== filterGradeId) return false;
+                        if (
+                          filterSectionIds.length > 0 &&
+                          !filterSectionIds.includes(st.sectionId)
+                        )
+                          return false;
+                        return st.name.toLowerCase().includes(value);
+                      });
                       setResults(filtered);
                       setSelectedStudentId(filtered[0]?.id ?? null);
                     }}
