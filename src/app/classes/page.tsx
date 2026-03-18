@@ -9,6 +9,7 @@ import { Table, Td, Th } from "@/components/ui/Table";
 import type { ClassRoom, SmsDb } from "@/lib/models";
 import { getDb, getSelectedSessionId, setDb } from "@/lib/storage";
 import { uid } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 export default function ClassesPage() {
@@ -17,6 +18,7 @@ export default function ClassesPage() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClassRoom | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const load = () => {
@@ -94,6 +96,7 @@ export default function ClassesPage() {
                     <Td>{c.name}</Td>
                     <Td>
                       <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => router.push(`/classes/${c.id}`)}>View</Button>
                         <Button variant="secondary" onClick={() => { setEditing(c); setOpen(true); }}>Edit</Button>
                         <Button variant="danger" onClick={() => { if (confirm("Delete this class?")) del(c.id); }}>Delete</Button>
                       </div>
