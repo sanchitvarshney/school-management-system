@@ -25,6 +25,6 @@ export function CardHeader({
 }
 
 export function CardBody({ children }: { children: ReactNode }) {
-  return <div className="p-2">{children}</div>;
+  return <div className="p-0">{children}</div>;
 }
 

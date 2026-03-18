@@ -57,13 +57,16 @@ export default function FeesPage() {
 
   const students = useMemo(
     () => db?.sessions?.[sessionId]?.students ?? [],
-    [db, sessionId]
+    [db, sessionId],
   );
   const fees = useMemo(
     () => db?.sessions?.[sessionId]?.fees ?? [],
-    [db, sessionId]
+    [db, sessionId],
   );
-  const studentNameById = useMemo(() => new Map(students.map((st) => [st.id, st.name])), [students]);
+  const studentNameById = useMemo(
+    () => new Map(students.map((st) => [st.id, st.name])),
+    [students],
+  );
 
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
@@ -79,7 +82,9 @@ export default function FeesPage() {
       if (studentFilter && f.studentId !== studentFilter) return false;
       if (monthFilter && f.month !== monthFilter) return false;
       if (!q) return true;
-      return [st, f.month, f.status].some((x) => String(x).toLowerCase().includes(q));
+      return [st, f.month, f.status].some((x) =>
+        String(x).toLowerCase().includes(q),
+      );
     });
   }, [fees, monthFilter, query, statusFilter, studentFilter, studentNameById]);
 
@@ -223,7 +228,10 @@ export default function FeesPage() {
     const next = ss.fees.some((x) => x.id === item.id)
       ? ss.fees.map((x) => (x.id === item.id ? item : x))
       : [item, ...ss.fees];
-    const nextDb: SmsDb = { ...db, sessions: { ...db.sessions, [sessionId]: { ...ss, fees: next } } };
+    const nextDb: SmsDb = {
+      ...db,
+      sessions: { ...db.sessions, [sessionId]: { ...ss, fees: next } },
+    };
     setDb(nextDb);
     setDbState(nextDb);
   }
@@ -234,21 +242,36 @@ export default function FeesPage() {
     const dueRows = filtered.filter((f) => f.status !== "Paid");
     const paidAmount = paidRows.reduce((sum, f) => sum + (f.amount || 0), 0);
     const dueAmount = dueRows.reduce((sum, f) => sum + (f.amount || 0), 0);
-    return { totalRows, paidRows: paidRows.length, dueRows: dueRows.length, paidAmount, dueAmount };
+    return {
+      totalRows,
+      paidRows: paidRows.length,
+      dueRows: dueRows.length,
+      paidAmount,
+      dueAmount,
+    };
   }, [filtered]);
 
   const paidVsDuePie = useMemo(() => {
-    const paid = filtered.filter((f) => f.status === "Paid").reduce((sum, f) => sum + (f.amount ?? 0), 0);
-    const due = filtered.filter((f) => f.status !== "Paid").reduce((sum, f) => sum + (f.amount ?? 0), 0);
+    const paid = filtered
+      .filter((f) => f.status === "Paid")
+      .reduce((sum, f) => sum + (f.amount ?? 0), 0);
+    const due = filtered
+      .filter((f) => f.status !== "Paid")
+      .reduce((sum, f) => sum + (f.amount ?? 0), 0);
     const out = [
       { name: "Paid", value: paid },
       { name: "Due", value: due },
     ];
-    return out.every((x) => x.value === 0) ? [{ name: "No data", value: 1 }] : out;
+    return out.every((x) => x.value === 0)
+      ? [{ name: "No data", value: 1 }]
+      : out;
   }, [filtered]);
 
   const monthlyPaidDue = useMemo(() => {
-    const byMonth = new Map<string, { month: string; paid: number; due: number }>();
+    const byMonth = new Map<
+      string,
+      { month: string; paid: number; due: number }
+    >();
     for (const f of filtered) {
       const cur = byMonth.get(f.month) ?? { month: f.month, paid: 0, due: 0 };
       if (f.status === "Paid") cur.paid += f.amount ?? 0;
@@ -256,7 +279,9 @@ export default function FeesPage() {
       byMonth.set(f.month, cur);
     }
     // Avoid noisy non-month buckets like "Transportation"
-    const rows = Array.from(byMonth.values()).filter((x) => /^\d{4}-\d{2}$/.test(x.month));
+    const rows = Array.from(byMonth.values()).filter((x) =>
+      /^\d{4}-\d{2}$/.test(x.month),
+    );
     rows.sort((a, b) => a.month.localeCompare(b.month));
     return rows.slice(-12);
   }, [filtered]);
@@ -265,10 +290,16 @@ export default function FeesPage() {
     const dueByStudent = new Map<string, number>();
     for (const f of filtered) {
       if (f.status === "Paid") continue;
-      dueByStudent.set(f.studentId, (dueByStudent.get(f.studentId) ?? 0) + (f.amount ?? 0));
+      dueByStudent.set(
+        f.studentId,
+        (dueByStudent.get(f.studentId) ?? 0) + (f.amount ?? 0),
+      );
     }
     return Array.from(dueByStudent.entries())
-      .map(([studentId, due]) => ({ student: studentNameById.get(studentId) ?? studentId, due }))
+      .map(([studentId, due]) => ({
+        student: studentNameById.get(studentId) ?? studentId,
+        due,
+      }))
       .sort((a, b) => b.due - a.due)
       .slice(0, 8);
   }, [filtered, studentNameById]);
@@ -277,7 +308,7 @@ export default function FeesPage() {
     <AppShell>
       <Card>
         <CardBody>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 p-2">
             <Box
               sx={{
                 maxWidth: "100%",
@@ -364,7 +395,9 @@ export default function FeesPage() {
           {tab === "filters" && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <div className="text-sm font-semibold text-gray-900">Search</div>
+                <div className="text-sm font-semibold text-gray-900">
+                  Search
+                </div>
                 <div className="mt-3">
                   <Input
                     placeholder="Search by student, month, status…"
@@ -375,21 +408,34 @@ export default function FeesPage() {
               </div>
 
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <div className="text-sm font-semibold text-gray-900">Status</div>
+                <div className="text-sm font-semibold text-gray-900">
+                  Status
+                </div>
                 <div className="mt-3">
                   <FormControl fullWidth size="small">
                     <MuiSelect
                       displayEmpty
                       value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as "" | FeeStatus)}
+                      onChange={(e) =>
+                        setStatusFilter(e.target.value as "" | FeeStatus)
+                      }
                       sx={{
                         height: 36,
                         borderRadius: 2,
                         backgroundColor: "#fff",
-                        ".MuiSelect-select": { py: 0.5, fontSize: 14, fontWeight: 600 },
+                        ".MuiSelect-select": {
+                          py: 0.5,
+                          fontSize: 14,
+                          fontWeight: 600,
+                        },
                       }}
                       renderValue={(selected) => {
-                        if (!selected) return <span style={{ color: "#6b7280", fontWeight: 500 }}>All</span>;
+                        if (!selected)
+                          return (
+                            <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                              All
+                            </span>
+                          );
                         return selected;
                       }}
                     >
@@ -404,7 +450,9 @@ export default function FeesPage() {
               </div>
 
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <div className="text-sm font-semibold text-gray-900">Student</div>
+                <div className="text-sm font-semibold text-gray-900">
+                  Student
+                </div>
                 <div className="mt-3">
                   <FormControl fullWidth size="small">
                     <MuiSelect
@@ -415,11 +463,23 @@ export default function FeesPage() {
                         height: 36,
                         borderRadius: 2,
                         backgroundColor: "#fff",
-                        ".MuiSelect-select": { py: 0.5, fontSize: 14, fontWeight: 600 },
+                        ".MuiSelect-select": {
+                          py: 0.5,
+                          fontSize: 14,
+                          fontWeight: 600,
+                        },
                       }}
                       renderValue={(selected) => {
-                        if (!selected) return <span style={{ color: "#6b7280", fontWeight: 500 }}>All students</span>;
-                        return students.find((s) => s.id === selected)?.name ?? selected;
+                        if (!selected)
+                          return (
+                            <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                              All students
+                            </span>
+                          );
+                        return (
+                          students.find((s) => s.id === selected)?.name ??
+                          selected
+                        );
                       }}
                     >
                       <MenuItem value="">
@@ -447,10 +507,19 @@ export default function FeesPage() {
                         height: 36,
                         borderRadius: 2,
                         backgroundColor: "#fff",
-                        ".MuiSelect-select": { py: 0.5, fontSize: 14, fontWeight: 600 },
+                        ".MuiSelect-select": {
+                          py: 0.5,
+                          fontSize: 14,
+                          fontWeight: 600,
+                        },
                       }}
                       renderValue={(selected) => {
-                        if (!selected) return <span style={{ color: "#6b7280", fontWeight: 500 }}>All months</span>;
+                        if (!selected)
+                          return (
+                            <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                              All months
+                            </span>
+                          );
                         return selected;
                       }}
                     >
@@ -488,29 +557,41 @@ export default function FeesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Rows</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">{dashboardStats.totalRows}</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    {dashboardStats.totalRows}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Paid (rows)</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">{dashboardStats.paidRows}</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    {dashboardStats.paidRows}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Due (rows)</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">{dashboardStats.dueRows}</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    {dashboardStats.dueRows}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Paid amount</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">Rs {dashboardStats.paidAmount}</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    Rs {dashboardStats.paidAmount}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Due amount</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">Rs {dashboardStats.dueAmount}</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    Rs {dashboardStats.dueAmount}
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                  <div className="text-sm font-semibold text-gray-900">Paid vs due (amount)</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    Paid vs due (amount)
+                  </div>
                   <div className="mt-3 h-64 min-h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -530,7 +611,9 @@ export default function FeesPage() {
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 lg:col-span-2">
-                  <div className="text-sm font-semibold text-gray-900">Monthly paid vs due</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    Monthly paid vs due
+                  </div>
                   <div className="mt-3 h-64 min-h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={monthlyPaidDue}>
@@ -539,13 +622,25 @@ export default function FeesPage() {
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="paid" name="Paid" fill="#4f46e5" radius={[6, 6, 0, 0]} />
-                        <Bar dataKey="due" name="Due" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                        <Bar
+                          dataKey="paid"
+                          name="Paid"
+                          fill="#4f46e5"
+                          radius={[6, 6, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="due"
+                          name="Due"
+                          fill="#f59e0b"
+                          radius={[6, 6, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                   {monthlyPaidDue.length === 0 && (
-                    <div className="mt-2 text-xs text-gray-500">No month-wise data to chart (try removing filters).</div>
+                    <div className="mt-2 text-xs text-gray-500">
+                      No month-wise data to chart (try removing filters).
+                    </div>
                   )}
                 </div>
               </div>
@@ -553,8 +648,12 @@ export default function FeesPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">Top students by due amount</div>
-                    <div className="text-xs text-gray-500">Highest outstanding balances (based on current filters).</div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      Top students by due amount
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Highest outstanding balances (based on current filters).
+                    </div>
                   </div>
                   <Button variant="secondary" onClick={() => setTab("filters")}>
                     Adjust filters
@@ -562,22 +661,36 @@ export default function FeesPage() {
                 </div>
                 <div className="mt-3 h-72 min-h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topDueStudents} layout="vertical" margin={{ left: 36 }}>
+                    <BarChart
+                      data={topDueStudents}
+                      layout="vertical"
+                      margin={{ left: 36 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
                       <YAxis type="category" dataKey="student" width={140} />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="due" name="Due" fill="#f59e0b" radius={[0, 6, 6, 0]} />
+                      <Bar
+                        dataKey="due"
+                        name="Due"
+                        fill="#f59e0b"
+                        radius={[0, 6, 6, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 {topDueStudents.length === 0 && (
-                  <div className="mt-2 text-xs text-gray-500">No due fees found (or filters hide them).</div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    No due fees found (or filters hide them).
+                  </div>
                 )}
               </div>
 
-              <Paper elevation={0} sx={{ width: "100%", p: 1, height: "calc(100vh - 320px)" }}>
+              <Paper
+                elevation={0}
+                sx={{ width: "100%", p: 1, height: "calc(100vh - 320px)" }}
+              >
                 <DataGrid
                   rows={filtered}
                   columns={columns}
@@ -637,7 +750,10 @@ function PayStudentFeePanel({
   const [studentId, setStudentId] = useState("");
   const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
   const [amount, setAmount] = useState<number>(0);
-  const [transactionType, setTransactionType] = useState<"Cash" | "Cheque" | "DD">("Cash");
+  const [transactionType, setTransactionType] = useState<
+    "Cash" | "Cheque" | "DD"
+  >("Cash");
+  const [transactionDetailsOpen, setTransactionDetailsOpen] = useState(false);
   const [chequeNumber, setChequeNumber] = useState("");
   const [chequeExpiryDate, setChequeExpiryDate] = useState("");
   const [bankName, setBankName] = useState("");
@@ -657,22 +773,38 @@ function PayStudentFeePanel({
     "1": 0,
   });
 
-  const unpaidFees = useMemo(() => fees.filter(f => f.studentId === studentId && f.status === "Due"), [fees, studentId]);
+  const unpaidFees = useMemo(
+    () => fees.filter((f) => f.studentId === studentId && f.status === "Due"),
+    [fees, studentId],
+  );
 
-  const selectedFees = useMemo(() => unpaidFees.filter(f => selectedFeeIds.includes(f.id)), [unpaidFees, selectedFeeIds]);
+  const selectedFees = useMemo(
+    () => unpaidFees.filter((f) => selectedFeeIds.includes(f.id)),
+    [unpaidFees, selectedFeeIds],
+  );
 
-  const baseTotal = useMemo(() => selectedFees.reduce((sum, f) => sum + f.amount, 0), [selectedFees]);
+  const baseTotal = useMemo(
+    () => selectedFees.reduce((sum, f) => sum + f.amount, 0),
+    [selectedFees],
+  );
   const transportationTotal = includeTransportation ? transportationAmount : 0;
   const subtotal = baseTotal + transportationTotal - couponDiscount;
-  const calculatedTotal = roundup ? (roundupValue > 0 ? Math.ceil(subtotal / roundupValue) * roundupValue : subtotal + roundupValue) : subtotal;
+  const calculatedTotal = roundup
+    ? roundupValue > 0
+      ? Math.ceil(subtotal / roundupValue) * roundupValue
+      : subtotal + roundupValue
+    : subtotal;
   const cashTotal = useMemo(() => {
-    return Object.entries(cashBreakdown).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
+    return Object.entries(cashBreakdown).reduce(
+      (sum, [denom, count]) => sum + Number(denom) * count,
+      0,
+    );
   }, [cashBreakdown]);
 
   const formatMonth = (month: string) => {
-    const [year, mon] = month.split('-');
+    const [year, mon] = month.split("-");
     const date = new Date(parseInt(year), parseInt(mon) - 1, 1);
-    return date.toLocaleString('default', { month: 'long' }) + ' - ' + year;
+    return date.toLocaleString("default", { month: "long" }) + " - " + year;
   };
 
   const reset = useCallback(() => {
@@ -685,6 +817,7 @@ function PayStudentFeePanel({
     setRoundupValue(10);
     setCouponDiscount(0);
     setTransactionType("Cash");
+    setTransactionDetailsOpen(false);
     setChequeNumber("");
     setChequeExpiryDate("");
     setBankName("");
@@ -710,22 +843,29 @@ function PayStudentFeePanel({
 
   const handlePay = () => {
     if (!studentId) return alert("Select a student.");
-    if (selectedFeeIds.length === 0 && !includeTransportation) return alert("Select at least one fee to pay or include transportation.");
+    if (selectedFeeIds.length === 0 && !includeTransportation)
+      return alert("Select at least one fee to pay or include transportation.");
     if (calculatedTotal <= 0) return alert("Amount must be > 0.");
-    if (transactionType === "Cheque" && (!chequeNumber || !bankName)) return alert("Cheque number and bank name are required.");
-    if (transactionType === "DD" && (!ddNumber || !bankName)) return alert("DD number and bank name are required.");
+    if (transactionType === "Cheque" && (!chequeNumber || !bankName))
+      return alert("Cheque number and bank name are required.");
+    if (transactionType === "DD" && (!ddNumber || !bankName))
+      return alert("DD number and bank name are required.");
 
     const today = new Date().toISOString().slice(0, 10);
     const payments: Fee[] = [];
 
     // Add selected monthly fees
-    selectedFees.forEach(fee => {
+    selectedFees.forEach((fee) => {
       payments.push({
         ...fee,
         status: "Paid" as const,
         paidDate: today,
         transactionType,
-        ...(transactionType === "Cheque" && { chequeNumber, chequeExpiryDate, bankName }),
+        ...(transactionType === "Cheque" && {
+          chequeNumber,
+          chequeExpiryDate,
+          bankName,
+        }),
         ...(transactionType === "DD" && { bankName, ddNumber }),
         ...(transactionType === "Cash" && { cashBreakdown }),
       });
@@ -741,7 +881,11 @@ function PayStudentFeePanel({
         status: "Paid" as const,
         paidDate: today,
         transactionType,
-        ...(transactionType === "Cheque" && { chequeNumber, chequeExpiryDate, bankName }),
+        ...(transactionType === "Cheque" && {
+          chequeNumber,
+          chequeExpiryDate,
+          bankName,
+        }),
         ...(transactionType === "DD" && { bankName, ddNumber }),
         ...(transactionType === "Cash" && { cashBreakdown }),
       });
@@ -752,155 +896,212 @@ function PayStudentFeePanel({
   };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4">
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 m-2 min-h-[calc(100vh-140px)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-base font-semibold text-gray-900">Pay Student Fee</div>
-          <div className="text-xs text-gray-500">Record a payment and print a receipt.</div>
+          <div className="text-base font-semibold text-gray-900">
+            Pay Student Fee
+          </div>
+          <div className="text-xs text-gray-500">
+            Record a payment and print a receipt.
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={reset}>
             Reset
           </Button>
-          <Button onClick={handlePay} disabled={transactionType === "Cash" && cashTotal !== calculatedTotal}>
+          <Button
+            onClick={handlePay}
+            disabled={
+              transactionType === "Cash" && cashTotal !== calculatedTotal
+            }
+          >
             Pay
           </Button>
         </div>
       </div>
 
-      <div className="space-y-4 pb-2 mt-4">
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Student</div>
-          <FormControl fullWidth size="small">
-            <MuiSelect
-              displayEmpty
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              sx={{
-                height: 36,
-                maxWidth:200,
-                borderRadius: 2,
-                backgroundColor: "#fff",
-                ".MuiSelect-select": {
-                  py: 0.5,
-                  fontSize: 14,
-                  fontWeight: 600,
-                },
-              }}
-              renderValue={(selected) => {
-                if (!selected) {
-                  return (
-                    <span style={{ color: "#6b7280", fontWeight: 500 }}>
-                      Select Student
-                    </span>
-                  );
-                }
-                return students.find((s) => s.id === selected)?.name ?? selected;
-              }}
-            >
-              <MenuItem value="">
-                <em style={{ color: "#6b7280" }}>Select Student</em>
-              </MenuItem>
-              {students.map((st) => (
-                <MenuItem key={st.id} value={st.id}>
-                  {st.name}
-                </MenuItem>
-              ))}
-            </MuiSelect>
-          </FormControl>
-        </div>
-
-        {studentId && unpaidFees.length > 0 && (
+      <div className="space-y-4 pb-2 mt-4 grid grid-cols-[2fr_1fr] gap-12">
+        <div className="space-y-4">
+          {" "}
           <div>
-            <div className="text-xs text-gray-600 mb-1">Unpaid Fees</div>
+            <div className="text-xs text-gray-600 mb-1">Student</div>
             <FormControl fullWidth size="small">
-              <InputLabel id="unpaid-fees-label">Unpaid Fees</InputLabel>
-              <MuiSelect<string[]>
-                labelId="unpaid-fees-label"
-                multiple
-                value={selectedFeeIds}
-                onChange={(e: SelectChangeEvent<string[]>) => {
-                  const v = e.target.value;
-                  setSelectedFeeIds(typeof v === "string" ? v.split(",") : v);
+              <MuiSelect
+                displayEmpty
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+                sx={{
+                  height: 36,
+                  maxWidth: 200,
+                  borderRadius: 2,
+                  backgroundColor: "#fff",
+                  ".MuiSelect-select": {
+                    py: 0.5,
+                    fontSize: 14,
+                    fontWeight: 600,
+                  },
                 }}
-                input={<OutlinedInput label="Unpaid Fees" />}
                 renderValue={(selected) => {
-                  const ids = (Array.isArray(selected) ? selected : []) as string[];
-                  const byId = new Map(unpaidFees.map((f) => [f.id, f]));
-                  return ids
-                    .map((id) => {
-                      const fee = byId.get(id);
-                      return fee
-                        ? `${formatMonth(fee.month)} - Rs ${fee.amount}`
-                        : id;
-                    })
-                    .join(", ");
+                  if (!selected) {
+                    return (
+                      <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                        Select Student
+                      </span>
+                    );
+                  }
+                  return (
+                    students.find((s) => s.id === selected)?.name ?? selected
+                  );
                 }}
               >
-                {unpaidFees.map((fee) => (
-                  <MenuItem key={fee.id} value={fee.id}>
-                    {formatMonth(fee.month)} - Rs {fee.amount}
+                <MenuItem value="">
+                  <em style={{ color: "#6b7280" }}>Select Student</em>
+                </MenuItem>
+                {students.map((st) => (
+                  <MenuItem key={st.id} value={st.id}>
+                    {st.name}
                   </MenuItem>
                 ))}
               </MuiSelect>
             </FormControl>
           </div>
-        )}
-
-        {studentId && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="transportation"
-                checked={includeTransportation}
-                onChange={(e) => setIncludeTransportation(e.target.checked)}
-              />
-              <label htmlFor="transportation" className="text-sm">Include Transportation Fee</label>
+          {studentId && unpaidFees.length > 0 && (
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Unpaid Fees</div>
+              <FormControl fullWidth size="small">
+                <InputLabel id="unpaid-fees-label">Unpaid Fees</InputLabel>
+                <MuiSelect<string[]>
+                  labelId="unpaid-fees-label"
+                  multiple
+                  value={selectedFeeIds}
+                  onChange={(e: SelectChangeEvent<string[]>) => {
+                    const v = e.target.value;
+                    setSelectedFeeIds(typeof v === "string" ? v.split(",") : v);
+                  }}
+                  input={<OutlinedInput label="Unpaid Fees" />}
+                  renderValue={(selected) => {
+                    const ids = (
+                      Array.isArray(selected) ? selected : []
+                    ) as string[];
+                    const byId = new Map(unpaidFees.map((f) => [f.id, f]));
+                    return ids
+                      .map((id) => {
+                        const fee = byId.get(id);
+                        return fee
+                          ? `${formatMonth(fee.month)} - Rs ${fee.amount}`
+                          : id;
+                      })
+                      .join(", ");
+                  }}
+                >
+                  {unpaidFees.map((fee) => (
+                    <MenuItem key={fee.id} value={fee.id}>
+                      {formatMonth(fee.month)} - Rs {fee.amount}
+                    </MenuItem>
+                  ))}
+                </MuiSelect>
+              </FormControl>
             </div>
-            {includeTransportation && (
+          )}
+          {studentId && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="transportation"
+                  checked={includeTransportation}
+                  onChange={(e) => setIncludeTransportation(e.target.checked)}
+                />
+                <label htmlFor="transportation" className="text-sm">
+                  Include Transportation Fee
+                </label>
+              </div>
+              {includeTransportation && (
+                <div>
+                  <div className="text-xs text-gray-600 mb-1">
+                    Transportation Amount
+                  </div>
+                  <Input
+                    type="number"
+                    value={transportationAmount}
+                    onChange={(e) =>
+                      setTransportationAmount(Number(e.target.value))
+                    }
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="roundup"
+                  checked={roundup}
+                  onChange={(e) => setRoundup(e.target.checked)}
+                />
+                <label htmlFor="roundup" className="text-sm">
+                  Round
+                </label>
+                {roundup && (
+                  <input
+                    type="number"
+                    value={roundupValue}
+                    onChange={(e) => setRoundupValue(Number(e.target.value))}
+                    className="w-16 px-2 py-1 text-xs border border-gray-300 rounded"
+                    placeholder="10"
+                  />
+                )}
+              </div>
+
               <div>
-                <div className="text-xs text-gray-600 mb-1">Transportation Amount</div>
+                <div className="text-xs text-gray-600 mb-1">
+                  Coupon/Discount
+                </div>
                 <Input
                   type="number"
-                  value={transportationAmount}
-                  onChange={(e) => setTransportationAmount(Number(e.target.value))}
+                  value={couponDiscount}
+                  onChange={(e) => setCouponDiscount(Number(e.target.value))}
+                  placeholder="Discount amount"
                 />
               </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="roundup"
-                checked={roundup}
-                onChange={(e) => setRoundup(e.target.checked)}
-              />
-              <label htmlFor="roundup" className="text-sm">Round</label>
-              {roundup && (
-                <input
-                  type="number"
-                  value={roundupValue}
-                  onChange={(e) => setRoundupValue(Number(e.target.value))}
-                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded"
-                  placeholder="10"
-                />
-              )}
             </div>
-
-            <div>
-              <div className="text-xs text-gray-600 mb-1">Coupon/Discount</div>
-              <Input
-                type="number"
-                value={couponDiscount}
-                onChange={(e) => setCouponDiscount(Number(e.target.value))}
-                placeholder="Discount amount"
-              />
-            </div>
+          )}
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Total Amount</div>
+            <Input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+            />
           </div>
-        )}
-
-        <div>
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Transaction Type</div>
+            <FormControl fullWidth size="small">
+              <MuiSelect
+                value={transactionType}
+                onChange={(e) => {
+                  setTransactionType(e.target.value as "Cash" | "Cheque" | "DD");
+                  setTransactionDetailsOpen(true);
+                }}
+                sx={{
+                  height: 36,
+                  borderRadius: 2,
+                  backgroundColor: "#fff",
+                  ".MuiSelect-select": {
+                    py: 0.5,
+                    fontSize: 14,
+                    fontWeight: 600,
+                  },
+                }}
+              >
+                <MenuItem value="Cash">Cash</MenuItem>
+                <MenuItem value="Cheque">Cheque</MenuItem>
+                <MenuItem value="DD">DD</MenuItem>
+              </MuiSelect>
+            </FormControl>
+          </div>
+        </div>
+        <div className="space-y-4">
           <div className="text-xs text-gray-600 mb-1">Fee Breakdown</div>
           <div className="border rounded p-3 bg-gray-50">
             <div className="space-y-1 text-sm">
@@ -922,7 +1123,13 @@ function PayStudentFeePanel({
               )}
               {roundup && (
                 <div className="flex justify-between">
-                  <span>Rounding ({roundupValue > 0 ? `to nearest ${roundupValue}` : `${roundupValue}`})</span>
+                  <span>
+                    Rounding (
+                    {roundupValue > 0
+                      ? `to nearest ${roundupValue}`
+                      : `${roundupValue}`}
+                    )
+                  </span>
                   <span>Rs {calculatedTotal - subtotal}</span>
                 </div>
               )}
@@ -934,47 +1141,34 @@ function PayStudentFeePanel({
             </div>
           </div>
         </div>
+      </div>
 
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Total Amount</div>
-          <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
-        </div>
-
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Transaction Type</div>
-          <FormControl fullWidth size="small">
-            <MuiSelect
-              value={transactionType}
-              onChange={(e) =>
-                setTransactionType(e.target.value as "Cash" | "Cheque" | "DD")
-              }
-              sx={{
-                height: 36,
-                borderRadius: 2,
-                backgroundColor: "#fff",
-                ".MuiSelect-select": {
-                  py: 0.5,
-                  fontSize: 14,
-                  fontWeight: 600,
-                },
-              }}
-            >
-              <MenuItem value="Cash">Cash</MenuItem>
-              <MenuItem value="Cheque">Cheque</MenuItem>
-              <MenuItem value="DD">DD</MenuItem>
-            </MuiSelect>
-          </FormControl>
-        </div>
-
+      <Modal
+        open={transactionDetailsOpen}
+        title={`Transaction Details (${transactionType})`}
+        onClose={() => setTransactionDetailsOpen(false)}
+        footer={
+          <Button variant="secondary" onClick={() => setTransactionDetailsOpen(false)}>
+            Close
+          </Button>
+        }
+      >
         {transactionType === "Cheque" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <div className="text-xs text-gray-600 mb-1">Cheque Number</div>
-              <Input value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} />
+              <Input
+                value={chequeNumber}
+                onChange={(e) => setChequeNumber(e.target.value)}
+              />
             </div>
             <div>
               <div className="text-xs text-gray-600 mb-1">Expiry Date</div>
-              <Input type="date" value={chequeExpiryDate} onChange={(e) => setChequeExpiryDate(e.target.value)} />
+              <Input
+                type="date"
+                value={chequeExpiryDate}
+                onChange={(e) => setChequeExpiryDate(e.target.value)}
+              />
             </div>
             <div className="sm:col-span-2">
               <div className="text-xs text-gray-600 mb-1">Bank Name</div>
@@ -1007,15 +1201,25 @@ function PayStudentFeePanel({
                     type="number"
                     min="0"
                     value={cashBreakdown[denom]}
-                    onChange={(e) => setCashBreakdown(prev => ({ ...prev, [denom]: Number(e.target.value) || 0 }))}
+                    onChange={(e) =>
+                      setCashBreakdown((prev) => ({
+                        ...prev,
+                        [denom]: Number(e.target.value) || 0,
+                      }))
+                    }
                   />
                 </div>
               ))}
             </div>
             <div className="text-xs text-gray-500 mt-2">Total: Rs {cashTotal}</div>
+            {cashTotal !== calculatedTotal && (
+              <div className="mt-2 text-xs text-amber-700">
+                Cash breakdown total must match the amount (Rs {calculatedTotal}).
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </Modal>
     </div>
   );
 }
@@ -1031,7 +1235,10 @@ function ReceiptModal({
   students: Student[];
   onClose: () => void;
 }) {
-  const studentName = payments.length > 0 ? students.find(s => s.id === payments[0].studentId)?.name : "";
+  const studentName =
+    payments.length > 0
+      ? students.find((s) => s.id === payments[0].studentId)?.name
+      : "";
   const total = payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
@@ -1071,7 +1278,9 @@ function ReceiptModal({
             <div>
               <div className="text-xs text-gray-600">Total Amount</div>
               <div className="font-medium">Rs {total}</div>
-              <div className="text-xs text-gray-500">{numberToWords(total)}</div>
+              <div className="text-xs text-gray-500">
+                {numberToWords(total)}
+              </div>
             </div>
           </div>
         </div>
@@ -1092,7 +1301,9 @@ function ReceiptModal({
             <div className="text-sm space-y-1">
               <div>Number: {payments[0].chequeNumber}</div>
               <div>Bank: {payments[0].bankName}</div>
-              {payments[0].chequeExpiryDate && <div>Expiry: {payments[0].chequeExpiryDate}</div>}
+              {payments[0].chequeExpiryDate && (
+                <div>Expiry: {payments[0].chequeExpiryDate}</div>
+              )}
             </div>
           </div>
         )}
@@ -1105,16 +1316,21 @@ function ReceiptModal({
             </div>
           </div>
         )}
-        {payments[0]?.transactionType === "Cash" && payments[0].cashBreakdown && (
-          <div>
-            <div className="text-sm font-medium mb-2">Cash Breakdown</div>
-            <div className="text-sm space-y-1">
-              {Object.entries(payments[0].cashBreakdown).filter(([, count]) => count > 0).map(([denom, count]) => (
-                <div key={denom}>Rs {denom} x {count} = Rs {Number(denom) * count}</div>
-              ))}
+        {payments[0]?.transactionType === "Cash" &&
+          payments[0].cashBreakdown && (
+            <div>
+              <div className="text-sm font-medium mb-2">Cash Breakdown</div>
+              <div className="text-sm space-y-1">
+                {Object.entries(payments[0].cashBreakdown)
+                  .filter(([, count]) => count > 0)
+                  .map(([denom, count]) => (
+                    <div key={denom}>
+                      Rs {denom} x {count} = Rs {Number(denom) * count}
+                    </div>
+                  ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
     </Modal>
   );
@@ -1137,7 +1353,10 @@ function EditFeeModal({
 }) {
   const [studentId, setStudentId] = useState("");
   const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
-  const [transactionType, setTransactionType] = useState<"Cash" | "Cheque" | "DD">("Cash");
+  const [transactionType, setTransactionType] = useState<
+    "Cash" | "Cheque" | "DD"
+  >("Cash");
+  const [transactionDetailsOpen, setTransactionDetailsOpen] = useState(false);
   const [chequeNumber, setChequeNumber] = useState("");
   const [chequeExpiryDate, setChequeExpiryDate] = useState("");
   const [bankName, setBankName] = useState("");
@@ -1157,22 +1376,38 @@ function EditFeeModal({
     "1": 0,
   });
 
-  const unpaidFees = useMemo(() => fees.filter(f => f.studentId === studentId && f.status === "Due"), [fees, studentId]);
+  const unpaidFees = useMemo(
+    () => fees.filter((f) => f.studentId === studentId && f.status === "Due"),
+    [fees, studentId],
+  );
 
-  const selectedFees = useMemo(() => unpaidFees.filter(f => selectedFeeIds.includes(f.id)), [unpaidFees, selectedFeeIds]);
+  const selectedFees = useMemo(
+    () => unpaidFees.filter((f) => selectedFeeIds.includes(f.id)),
+    [unpaidFees, selectedFeeIds],
+  );
 
-  const baseTotal = useMemo(() => selectedFees.reduce((sum, f) => sum + f.amount, 0), [selectedFees]);
+  const baseTotal = useMemo(
+    () => selectedFees.reduce((sum, f) => sum + f.amount, 0),
+    [selectedFees],
+  );
   const transportationTotal = includeTransportation ? transportationAmount : 0;
   const subtotal = baseTotal + transportationTotal - couponDiscount;
-  const calculatedTotal = roundup ? (roundupValue > 0 ? Math.ceil(subtotal / roundupValue) * roundupValue : subtotal + roundupValue) : subtotal;
+  const calculatedTotal = roundup
+    ? roundupValue > 0
+      ? Math.ceil(subtotal / roundupValue) * roundupValue
+      : subtotal + roundupValue
+    : subtotal;
   const cashTotal = useMemo(() => {
-    return Object.entries(cashBreakdown).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
+    return Object.entries(cashBreakdown).reduce(
+      (sum, [denom, count]) => sum + Number(denom) * count,
+      0,
+    );
   }, [cashBreakdown]);
 
   const formatMonth = (month: string) => {
-    const [year, mon] = month.split('-');
+    const [year, mon] = month.split("-");
     const date = new Date(parseInt(year), parseInt(mon) - 1, 1);
-    return date.toLocaleString('default', { month: 'long' }) + ' - ' + year;
+    return date.toLocaleString("default", { month: "long" }) + " - " + year;
   };
 
   useEffect(() => {
@@ -1180,6 +1415,7 @@ function EditFeeModal({
     setStudentId(editing.studentId);
     setSelectedFeeIds([]); // For editing, we don't pre-select fees
     setTransactionType(editing.transactionType || "Cash");
+    setTransactionDetailsOpen(false);
     setChequeNumber(editing.chequeNumber || "");
     setChequeExpiryDate(editing.chequeExpiryDate || "");
     setBankName(editing.bankName || "");
@@ -1201,23 +1437,33 @@ function EditFeeModal({
   const handleSave = () => {
     if (!editing) return;
     if (!studentId) return alert("Student is required.");
-    if (selectedFeeIds.length === 0 && !includeTransportation) return alert("Select at least one fee to edit or include transportation.");
+    if (selectedFeeIds.length === 0 && !includeTransportation)
+      return alert(
+        "Select at least one fee to edit or include transportation.",
+      );
     if (calculatedTotal <= 0) return alert("Amount must be > 0.");
-    if (transactionType === "Cash" && cashTotal !== calculatedTotal) return alert("Cash breakdown total must match the amount.");
-    if (transactionType === "Cheque" && (!chequeNumber || !bankName)) return alert("Cheque number and bank name are required.");
-    if (transactionType === "DD" && (!ddNumber || !bankName)) return alert("DD number and bank name are required.");
+    if (transactionType === "Cash" && cashTotal !== calculatedTotal)
+      return alert("Cash breakdown total must match the amount.");
+    if (transactionType === "Cheque" && (!chequeNumber || !bankName))
+      return alert("Cheque number and bank name are required.");
+    if (transactionType === "DD" && (!ddNumber || !bankName))
+      return alert("DD number and bank name are required.");
 
     const today = new Date().toISOString().slice(0, 10);
     const updatedFees: Fee[] = [];
 
     // Update selected monthly fees
-    selectedFees.forEach(fee => {
+    selectedFees.forEach((fee) => {
       updatedFees.push({
         ...fee,
         status: "Paid" as const,
         paidDate: today,
         transactionType,
-        ...(transactionType === "Cheque" && { chequeNumber, chequeExpiryDate, bankName }),
+        ...(transactionType === "Cheque" && {
+          chequeNumber,
+          chequeExpiryDate,
+          bankName,
+        }),
         ...(transactionType === "DD" && { bankName, ddNumber }),
         ...(transactionType === "Cash" && { cashBreakdown }),
       });
@@ -1233,7 +1479,11 @@ function EditFeeModal({
         status: "Paid" as const,
         paidDate: today,
         transactionType,
-        ...(transactionType === "Cheque" && { chequeNumber, chequeExpiryDate, bankName }),
+        ...(transactionType === "Cheque" && {
+          chequeNumber,
+          chequeExpiryDate,
+          bankName,
+        }),
         ...(transactionType === "DD" && { bankName, ddNumber }),
         ...(transactionType === "Cash" && { cashBreakdown }),
       });
@@ -1258,7 +1508,9 @@ function EditFeeModal({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={transactionType === "Cash" && cashTotal !== calculatedTotal}
+            disabled={
+              transactionType === "Cash" && cashTotal !== calculatedTotal
+            }
           >
             Save Changes
           </Button>
@@ -1291,7 +1543,9 @@ function EditFeeModal({
                     </span>
                   );
                 }
-                return students.find((s) => s.id === selected)?.name ?? selected;
+                return (
+                  students.find((s) => s.id === selected)?.name ?? selected
+                );
               }}
             >
               <MenuItem value="">
@@ -1321,7 +1575,9 @@ function EditFeeModal({
                 }}
                 input={<OutlinedInput label="Unpaid Fees" />}
                 renderValue={(selected) => {
-                  const ids = (Array.isArray(selected) ? selected : []) as string[];
+                  const ids = (
+                    Array.isArray(selected) ? selected : []
+                  ) as string[];
                   const byId = new Map(unpaidFees.map((f) => [f.id, f]));
                   return ids
                     .map((id) => {
@@ -1352,15 +1608,21 @@ function EditFeeModal({
                 checked={includeTransportation}
                 onChange={(e) => setIncludeTransportation(e.target.checked)}
               />
-              <label htmlFor="transportation-edit" className="text-sm">Include Transportation Fee</label>
+              <label htmlFor="transportation-edit" className="text-sm">
+                Include Transportation Fee
+              </label>
             </div>
             {includeTransportation && (
               <div>
-                <div className="text-xs text-gray-600 mb-1">Transportation Amount</div>
+                <div className="text-xs text-gray-600 mb-1">
+                  Transportation Amount
+                </div>
                 <Input
                   type="number"
                   value={transportationAmount}
-                  onChange={(e) => setTransportationAmount(Number(e.target.value))}
+                  onChange={(e) =>
+                    setTransportationAmount(Number(e.target.value))
+                  }
                 />
               </div>
             )}
@@ -1372,7 +1634,9 @@ function EditFeeModal({
                 checked={roundup}
                 onChange={(e) => setRoundup(e.target.checked)}
               />
-              <label htmlFor="roundup-edit" className="text-sm">Round</label>
+              <label htmlFor="roundup-edit" className="text-sm">
+                Round
+              </label>
               {roundup && (
                 <input
                   type="number"
@@ -1418,7 +1682,13 @@ function EditFeeModal({
               )}
               {roundup && (
                 <div className="flex justify-between">
-                  <span>Rounding ({roundupValue > 0 ? `to nearest ${roundupValue}` : `${roundupValue}`})</span>
+                  <span>
+                    Rounding (
+                    {roundupValue > 0
+                      ? `to nearest ${roundupValue}`
+                      : `${roundupValue}`}
+                    )
+                  </span>
                   <span>Rs {calculatedTotal - subtotal}</span>
                 </div>
               )}
@@ -1436,9 +1706,10 @@ function EditFeeModal({
           <FormControl fullWidth size="small">
             <MuiSelect
               value={transactionType}
-              onChange={(e) =>
-                setTransactionType(e.target.value as "Cash" | "Cheque" | "DD")
-              }
+              onChange={(e) => {
+                setTransactionType(e.target.value as "Cash" | "Cheque" | "DD");
+                setTransactionDetailsOpen(true);
+              }}
               sx={{
                 height: 36,
                 borderRadius: 2,
@@ -1456,20 +1727,44 @@ function EditFeeModal({
             </MuiSelect>
           </FormControl>
         </div>
+      </div>
 
+      <Modal
+        open={transactionDetailsOpen}
+        title={`Transaction Details (${transactionType})`}
+        onClose={() => setTransactionDetailsOpen(false)}
+        footer={
+          <Button
+            variant="secondary"
+            onClick={() => setTransactionDetailsOpen(false)}
+          >
+            Close
+          </Button>
+        }
+      >
         {transactionType === "Cheque" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <div className="text-xs text-gray-600 mb-1">Cheque Number</div>
-              <Input value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} />
+              <Input
+                value={chequeNumber}
+                onChange={(e) => setChequeNumber(e.target.value)}
+              />
             </div>
             <div>
               <div className="text-xs text-gray-600 mb-1">Expiry Date</div>
-              <Input type="date" value={chequeExpiryDate} onChange={(e) => setChequeExpiryDate(e.target.value)} />
+              <Input
+                type="date"
+                value={chequeExpiryDate}
+                onChange={(e) => setChequeExpiryDate(e.target.value)}
+              />
             </div>
             <div className="sm:col-span-2">
               <div className="text-xs text-gray-600 mb-1">Bank Name</div>
-              <Input value={bankName} onChange={(e) => setBankName(e.target.value)} />
+              <Input
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+              />
             </div>
           </div>
         )}
@@ -1498,15 +1793,25 @@ function EditFeeModal({
                     type="number"
                     min="0"
                     value={cashBreakdown[denom]}
-                    onChange={(e) => setCashBreakdown(prev => ({ ...prev, [denom]: Number(e.target.value) || 0 }))}
+                    onChange={(e) =>
+                      setCashBreakdown((prev) => ({
+                        ...prev,
+                        [denom]: Number(e.target.value) || 0,
+                      }))
+                    }
                   />
                 </div>
               ))}
             </div>
             <div className="text-xs text-gray-500 mt-2">Total: Rs {cashTotal}</div>
+            {cashTotal !== calculatedTotal && (
+              <div className="mt-2 text-xs text-amber-700">
+                Cash breakdown total must match the amount (Rs {calculatedTotal}).
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </Modal>
     </Modal>
   );
 }
@@ -1537,5 +1842,4 @@ function EditFeeModal({
       display: none !important;
     }
   }
-`}</style>
-
+`}</style>;
