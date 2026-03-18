@@ -159,8 +159,8 @@ export default function StudentsPage() {
             <CardBody>
               <div className="space-y-4">
                 {/* Filter bar: grade dropdown + scrollable class (section) checkboxes */}
-                <div className="rounded-xl bg-[#002147] text-white px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-                  <div className="flex shrink-0 items-center">
+                <div className="rounded-xl bg-[#002147] text-white px-4 py-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                  <div className="flex h-10 shrink-0 items-center">
                     <select
                       className="h-10 min-w-[200px] rounded-lg border border-gray-300 bg-white px-3 pr-9 text-sm text-gray-500 shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/30 appearance-none bg-[length:14px] bg-[right_10px_center] bg-no-repeat"
                       style={{
@@ -178,30 +178,36 @@ export default function StudentsPage() {
                     </select>
                   </div>
 
-                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-stretch">
-                    <span className="shrink-0 self-center text-sm font-bold text-white sm:pt-2 sm:self-start">
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                    <span className="shrink-0 text-sm font-bold leading-none text-white">
                       Select Class
                     </span>
-                    <div className="flex min-h-[44px] min-w-0 flex-1 items-stretch overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    {/* Single row: h-10 matches grade dropdown; arrows + scroll + Select All share same height */}
+                    <div className="flex h-10 min-w-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
                       <button
                         type="button"
                         aria-label="Scroll classes left"
                         onClick={() => scrollClassRow(-1)}
                         disabled={!filterGradeId || sectionsForGrade.length === 0}
-                        className="flex w-9 shrink-0 items-center justify-center border-r border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100 disabled:opacity-40"
+                        className="flex h-10 w-8 shrink-0 items-center justify-center border-r border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
                       >
-                        &lt;
+                        ‹
                       </button>
                       <div
                         ref={classScrollRef}
-                        className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto overflow-y-hidden py-1"
+                        tabIndex={-1}
+                        className="class-strip-scroll flex h-10 min-h-10 min-w-0 flex-1 touch-pan-y items-center overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                        onWheel={(e) => {
+                          if (e.shiftKey) e.preventDefault();
+                          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) e.preventDefault();
+                        }}
                       >
                         {filterGradeId === "" ? (
-                          <span className="px-4 py-2 text-sm text-gray-400">
+                          <span className="flex h-10 items-center px-3 text-sm text-gray-400">
                             Select a grade to see classes
                           </span>
                         ) : sectionsForGrade.length === 0 ? (
-                          <span className="px-4 py-2 text-sm text-gray-400">
+                          <span className="flex h-10 items-center px-3 text-sm text-gray-400">
                             No sections for this grade
                           </span>
                         ) : (
@@ -216,16 +222,16 @@ export default function StudentsPage() {
                               <label
                                 key={sec.id}
                                 className={[
-                                  "flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-4 py-2 text-sm",
+                                  "flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-gray-200 px-3 text-sm leading-none",
                                   checked ? "text-gray-800" : "text-gray-400",
-                                  i > 0 ? "border-l border-gray-200" : "",
+                                  i > 0 ? "border-l" : "",
                                 ].join(" ")}
                               >
                                 <input
                                   type="checkbox"
                                   checked={checked}
                                   onChange={() => toggleSection(sec.id)}
-                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                 />
                                 <span className="font-medium">{label}</span>
                               </label>
@@ -238,15 +244,15 @@ export default function StudentsPage() {
                         aria-label="Scroll classes right"
                         onClick={() => scrollClassRow(1)}
                         disabled={!filterGradeId || sectionsForGrade.length === 0}
-                        className="flex w-9 shrink-0 items-center justify-center border-l border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100 disabled:opacity-40"
+                        className="flex h-10 w-8 shrink-0 items-center justify-center border-l border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
                       >
-                        &gt;
+                        ›
                       </button>
                       <button
                         type="button"
                         onClick={selectAllSectionsForGrade}
                         disabled={!filterGradeId || sectionsForGrade.length === 0}
-                        className="shrink-0 border-l border-gray-200 bg-[#00B4D8] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-[#0096c7] disabled:opacity-40"
+                        className="flex h-10 shrink-0 items-center border-l border-gray-200 bg-[#00B4D8] px-3 text-[10px] font-bold uppercase leading-tight tracking-wide text-white hover:bg-[#0096c7] disabled:opacity-40 sm:px-4 sm:text-xs"
                       >
                         Select All
                       </button>
