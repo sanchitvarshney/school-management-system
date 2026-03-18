@@ -30,19 +30,23 @@ export default function SectionsPage() {
     return () => window.removeEventListener("sms:session-changed", load);
   }, []);
 
-  const s = db?.sessions?.[sessionId];
-  const sections = s?.sections ?? [];
-  const classes = s?.classes ?? [];
-
-  const classNameById = useMemo(() => new Map(classes.map((c) => [c.id, c.name])), [classes]);
+  const classes = useMemo(
+    () => db?.sessions?.[sessionId]?.classes ?? [],
+    [db, sessionId]
+  );
+  const classNameById = useMemo(
+    () => new Map(classes.map((c) => [c.id, c.name])),
+    [classes]
+  );
 
   const filtered = useMemo(() => {
+    const sections = db?.sessions?.[sessionId]?.sections ?? [];
     const q = query.trim().toLowerCase();
     if (!q) return sections;
     return sections.filter((sec) =>
       `${classNameById.get(sec.classId) ?? ""} ${sec.name}`.toLowerCase().includes(q)
     );
-  }, [sections, query, classNameById]);
+  }, [db, sessionId, query, classNameById]);
 
   function upsert(item: Section) {
     if (!db) return;

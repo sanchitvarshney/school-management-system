@@ -29,12 +29,12 @@ export default function ClassesPage() {
     return () => window.removeEventListener("sms:session-changed", load);
   }, []);
 
-  const classes = db?.sessions?.[sessionId]?.classes ?? [];
   const filtered = useMemo(() => {
+    const classes = db?.sessions?.[sessionId]?.classes ?? [];
     const q = query.trim().toLowerCase();
     if (!q) return classes;
     return classes.filter((c) => c.name.toLowerCase().includes(q));
-  }, [classes, query]);
+  }, [db, sessionId, query]);
 
   function upsert(item: ClassRoom) {
     if (!db) return;

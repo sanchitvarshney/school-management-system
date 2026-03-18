@@ -1,7 +1,17 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell";
+import Image from "next/image";
 import Link from "next/link";
+
+type TileProps = {
+  href: string;
+  label: string;
+  Icon: string;
+  accent?: boolean;
+  disabled?: boolean;
+  className?: string;
+};
 
 const tiles = {
   student: { href: "/students", label: "Student", Icon: "/assets/student.png" },
@@ -26,7 +36,7 @@ const tiles = {
   },
 };
 
-function Tile({ href, label, Icon, accent, disabled, className = "" }: any) {
+function Tile({ href, label, Icon, accent, disabled, className = "" }: TileProps) {
   const base =
     "h-[90px] border border-gray-400 bg-cyan-100 flex flex-col items-center justify-center gap-2 transition-colors";
 
@@ -38,7 +48,7 @@ function Tile({ href, label, Icon, accent, disabled, className = "" }: any) {
 
   const content = (
     <>
-      <img src={Icon} alt={label} className="h-8 w-8" />
+      <Image src={Icon} alt={label} width={32} height={32} className="h-8 w-8 object-contain" />
       <div className="text-[11px] font-semibold">{label}</div>
     </>
   );
@@ -81,7 +91,13 @@ export default function MenuPage() {
         </div>
 
         <div className="mx-auto w-full max-w-5xl flex gap-4 rounded-sm border border-gray-300 bg-white p-4">
-          <img src="/post-it.png" className="h-12 w-12" />
+          <Image
+            src="/post-it.png"
+            alt=""
+            width={48}
+            height={48}
+            className="h-12 w-12 object-contain"
+          />
          <div>
            <div className="text-sm font-semibold text-gray-900">
             Important Update / Notification

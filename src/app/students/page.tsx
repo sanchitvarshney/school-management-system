@@ -23,7 +23,7 @@ export default function StudentsPage() {
   const classScrollRef = useRef<HTMLDivElement>(null);
   const [results, setResults] = useState<Student[]>([]);
   const [registerOpen, setRegisterOpen] = useState(false);
-  const [editing, setEditing] = useState<Student | null>(null);
+  const [editing] = useState<Student | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,10 +37,18 @@ export default function StudentsPage() {
     return () => window.removeEventListener("sms:session-changed", load);
   }, []);
 
-  const s = db?.sessions?.[sessionId];
-  const students = s?.students ?? [];
-  const classes = s?.classes ?? [];
-  const sections = s?.sections ?? [];
+  const students = useMemo(
+    () => db?.sessions?.[sessionId]?.students ?? [],
+    [db, sessionId]
+  );
+  const classes = useMemo(
+    () => db?.sessions?.[sessionId]?.classes ?? [],
+    [db, sessionId]
+  );
+  const sections = useMemo(
+    () => db?.sessions?.[sessionId]?.sections ?? [],
+    [db, sessionId]
+  );
 
   // Default to Grade 8 with 8A selected so 8A–8K show on load (like reference design)
   useEffect(() => {
@@ -93,17 +101,6 @@ export default function StudentsPage() {
     const nextDb: SmsDb = {
       ...db,
       sessions: { ...db.sessions, [sessionId]: { ...ss, students: nextStudents } },
-    };
-    setDb(nextDb);
-    setDbState(nextDb);
-  }
-
-  function deleteStudent(id: string) {
-    if (!db) return;
-    const ss = db.sessions[sessionId];
-    const nextDb: SmsDb = {
-      ...db,
-      sessions: { ...db.sessions, [sessionId]: { ...ss, students: ss.students.filter((x) => x.id !== id) } },
     };
     setDb(nextDb);
     setDbState(nextDb);
@@ -305,7 +302,6 @@ export default function StudentsPage() {
                 <tbody>
                   {results.map((st) => {
                     const active = selectedStudent?.id === st.id;
-                    const lectures = [1, 2, 3, 4, 5, 6, 7];
                     return (
                       <tr
                         key={st.id}
@@ -386,15 +382,6 @@ function SectionFieldset({ title, children }: { title: string; children: ReactNo
       <legend className="ml-4 px-3 text-sm font-semibold text-gray-900">{title}</legend>
       <div className="p-4 sm:p-5 space-y-4">{children}</div>
     </fieldset>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-2 py-2 border-b border-gray-100 last:border-b-0">
-      <div className="text-sm font-semibold text-gray-700">{label}</div>
-      <div className="text-sm text-gray-800">{value && value.trim() ? value : "-"}</div>
-    </div>
   );
 }
 

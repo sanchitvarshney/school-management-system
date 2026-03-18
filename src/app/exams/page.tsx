@@ -30,12 +30,14 @@ export default function ExamsPage() {
     return () => window.removeEventListener("sms:session-changed", load);
   }, []);
 
-  const s = db?.sessions?.[sessionId];
-  const exams = s?.exams ?? [];
-  const classes = s?.classes ?? [];
+  const classes = useMemo(
+    () => db?.sessions?.[sessionId]?.classes ?? [],
+    [db, sessionId]
+  );
   const classNameById = useMemo(() => new Map(classes.map((c) => [c.id, c.name])), [classes]);
 
   const filtered = useMemo(() => {
+    const exams = db?.sessions?.[sessionId]?.exams ?? [];
     const q = query.trim().toLowerCase();
     if (!q) return exams;
     return exams.filter((ex) =>
@@ -44,7 +46,7 @@ export default function ExamsPage() {
         .toLowerCase()
         .includes(q)
     );
-  }, [exams, query, classNameById]);
+  }, [db, sessionId, query, classNameById]);
 
   function upsert(item: Exam) {
     if (!db) return;

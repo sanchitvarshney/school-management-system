@@ -30,19 +30,21 @@ export default function FeesPage() {
     return () => window.removeEventListener("sms:session-changed", load);
   }, []);
 
-  const s = db?.sessions?.[sessionId];
-  const fees = s?.fees ?? [];
-  const students = s?.students ?? [];
+  const students = useMemo(
+    () => db?.sessions?.[sessionId]?.students ?? [],
+    [db, sessionId]
+  );
   const studentNameById = useMemo(() => new Map(students.map((st) => [st.id, st.name])), [students]);
 
   const filtered = useMemo(() => {
+    const fees = db?.sessions?.[sessionId]?.fees ?? [];
     const q = query.trim().toLowerCase();
     if (!q) return fees;
     return fees.filter((f) => {
       const st = studentNameById.get(f.studentId) ?? "";
       return [st, f.month, f.status].some((x) => String(x).toLowerCase().includes(q));
     });
-  }, [fees, query, studentNameById]);
+  }, [db, sessionId, query, studentNameById]);
 
   function upsert(item: Fee) {
     if (!db) return;
@@ -177,7 +179,7 @@ function FeeModal({
       const iso = d.toISOString().slice(0, 10);
       setPaidDate(iso);
     }
-  }, [status, open]);
+  }, [status, open, paidDate]);
 
   return (
     <Modal open={open} title={editing ? "Edit Fee" : "Add Fee"} onClose={onClose}>

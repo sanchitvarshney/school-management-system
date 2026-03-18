@@ -29,14 +29,14 @@ export default function TeachersPage() {
     return () => window.removeEventListener("sms:session-changed", load);
   }, []);
 
-  const teachers = db?.sessions?.[sessionId]?.teachers ?? [];
   const filtered = useMemo(() => {
+    const teachers = db?.sessions?.[sessionId]?.teachers ?? [];
     const q = query.trim().toLowerCase();
     if (!q) return teachers;
     return teachers.filter((t) =>
       [t.name, t.phone, t.subject].some((x) => x.toLowerCase().includes(q))
     );
-  }, [teachers, query]);
+  }, [db, sessionId, query]);
 
   function upsertTeacher(nextTeacher: Teacher) {
     if (!db) return;

@@ -28,9 +28,14 @@ export default function IdGeneratePage() {
     return () => window.removeEventListener("sms:session-changed", load);
   }, []);
 
-  const s = db?.sessions?.[sessionId];
-  const students = s?.students ?? [];
-  const teachers = s?.teachers ?? [];
+  const students = useMemo(
+    () => db?.sessions?.[sessionId]?.students ?? [],
+    [db, sessionId]
+  );
+  const teachers = useMemo(
+    () => db?.sessions?.[sessionId]?.teachers ?? [],
+    [db, sessionId]
+  );
 
   const options = useMemo(() => {
     if (type === "Student") return students.map((x) => ({ id: x.id, label: x.name }));
