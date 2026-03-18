@@ -156,7 +156,7 @@ export default function StudentsPage() {
             <CardBody>
               <div className="space-y-4">
                 {/* Filter bar: grade dropdown + scrollable class (section) checkboxes */}
-                <div className="rounded-xl bg-[#002147] text-white px-4 py-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <div className="rounded-xl bg-[#326e89] text-white px-4 py-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
                   <div className="flex h-10 shrink-0 items-center">
                     <select
                       className="h-10 min-w-[200px] rounded-lg border border-gray-300 bg-white px-3 pr-9 text-sm text-gray-500 shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/30 appearance-none bg-[length:14px] bg-[right_10px_center] bg-no-repeat"

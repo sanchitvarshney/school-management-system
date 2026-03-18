@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="h-screen w-full grid grid-cols-[72px_1fr] grid-rows-[56px_1fr]">
-      <aside className="row-span-2 bg-white border-r border-gray-200 flex flex-col items-center gap-6 py-4">
+      <aside className="row-span-2 bg-[#fff] border-r-2 border-r-[#00a6f4] flex flex-col items-center gap-6 py-4">
         <div className="h-8 w-8 rounded-full bg-indigo-600" title="School MS" />
         <nav className="flex flex-col my-auto items-center gap-3 ">
           {nav.map((item) => {
@@ -94,7 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Settings className="h-6 w-6 text-gray-700" />
       </aside>
 
-      <header className="col-start-2 col-end-3 border-b border-gray-200 flex items-center justify-between px-4 py-2 bg-white">
+      <header className="col-start-2 col-end-3 border-b-4 border-b-[#00a6f4] flex items-center justify-between px-4 py-[10px] bg-[#cefafe]">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Session</span>
