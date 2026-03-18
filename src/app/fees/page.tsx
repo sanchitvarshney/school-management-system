@@ -276,11 +276,6 @@ export default function FeesPage() {
   return (
     <AppShell>
       <Card>
-        <CardHeader
-          title="Fees"
-          subtitle="Track student fees"
-          right={<Button onClick={() => setTab("pay")}>Pay Student Fee</Button>}
-        />
         <CardBody>
           <div className="flex items-center justify-between gap-3">
             <Box
@@ -349,10 +344,6 @@ export default function FeesPage() {
                 />
               </Tabs>
             </Box>
-
-            <div className="text-xs text-gray-500">
-              Showing: {filtered.length} / {fees.length}
-            </div>
           </div>
 
           {tab === "pay" && (
@@ -494,7 +485,7 @@ export default function FeesPage() {
 
           {tab === "dashboard" && (
             <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Rows</div>
                   <div className="mt-1 text-lg font-semibold text-gray-900">{dashboardStats.totalRows}</div>
