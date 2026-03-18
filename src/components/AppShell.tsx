@@ -21,7 +21,6 @@ import Menu from "@mui/material/Menu";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
-import ButtonBase from "@mui/material/ButtonBase";
 import { useRouter } from "next/navigation";
 import { IconButton } from "@mui/material";
 
@@ -162,21 +161,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* One <button> only — never nest IconButton inside ButtonBase */}
-          <ButtonBase
-            disableRipple
-          
-            sx={{
-              px: 1.5,
-              py: 0.75,
-
-              bgcolor: "background.paper",
-              maxWidth: 280,
-              width: "100%",
-              justifyContent: "space-between",
-              gap: 1,
-            }}
-          >
+          {/* Avoid nesting <button> inside <button> (IconButton is a <button>) */}
+          <div className="flex items-center justify-between gap-2 bg-white max-w-[280px] w-full px-3 py-2 rounded-lg border border-gray-200">
             <span className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
               <Avatar
                 src={data.avatarUrl}
@@ -195,7 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 sx={{ flexShrink: 0, color: "text.secondary", fontSize: 22 }}
               />
             </IconButton>
-          </ButtonBase>
+          </div>
           <Menu
             anchorEl={userMenuAnchor}
             open={userMenuOpen}

@@ -4,8 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Drawer } from "@/components/ui/Drawer";
 import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
 import type { Fee, FeeStatus, SmsDb, Student } from "@/lib/models";
 import { getDb, getSelectedSessionId, setDb } from "@/lib/storage";
 import { uid, numberToWords } from "@/lib/utils";
@@ -13,6 +13,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Paper from "@mui/material/Paper";
 import { DataGrid } from "@mui/x-data-grid/DataGrid";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import MuiSelect, { type SelectChangeEvent } from "@mui/material/Select";
 
 export default function FeesPage() {
   const [db, setDbState] = useState<SmsDb | null>(null);
@@ -406,36 +411,101 @@ function PaymentModal({
   };
 
   return (
-    <Modal open={open} title="Pay Student Fee" onClose={onClose}>
-      <div className="space-y-4">
+    <Drawer
+      open={open}
+      title="Pay Student Fee"
+      onClose={onClose}
+      width="80vw"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handlePay}
+            disabled={transactionType === "Cash" && cashTotal !== calculatedTotal}
+          >
+            Pay
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4 pb-2">
         <div>
           <div className="text-xs text-gray-600 mb-1">Student</div>
-          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            <option value="">Select Student</option>
-            {students.map((st) => (
-              <option key={st.id} value={st.id}>{st.name}</option>
-            ))}
-          </Select>
+          <FormControl fullWidth size="small">
+            <MuiSelect
+              displayEmpty
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              sx={{
+                height: 36,
+                maxWidth:200,
+                borderRadius: 2,
+                backgroundColor: "#fff",
+                ".MuiSelect-select": {
+                  py: 0.5,
+                  fontSize: 14,
+                  fontWeight: 600,
+                },
+              }}
+              renderValue={(selected) => {
+                if (!selected) {
+                  return (
+                    <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                      Select Student
+                    </span>
+                  );
+                }
+                return students.find((s) => s.id === selected)?.name ?? selected;
+              }}
+            >
+              <MenuItem value="">
+                <em style={{ color: "#6b7280" }}>Select Student</em>
+              </MenuItem>
+              {students.map((st) => (
+                <MenuItem key={st.id} value={st.id}>
+                  {st.name}
+                </MenuItem>
+              ))}
+            </MuiSelect>
+          </FormControl>
         </div>
 
         {studentId && unpaidFees.length > 0 && (
           <div>
             <div className="text-xs text-gray-600 mb-1">Unpaid Fees</div>
-            <Select
-              
-              value={selectedFeeIds}
-              onChange={(e) => {
-                const options = Array.from(e.target.selectedOptions, option => option.value);
-                setSelectedFeeIds(options);
-              }}
-              className="w-full"
-            >
-              {unpaidFees.map((fee) => (
-                <option key={fee.id} value={fee.id}>
-                  {formatMonth(fee.month)} - Rs {fee.amount}
-                </option>
-              ))}
-            </Select>
+            <FormControl fullWidth size="small">
+              <InputLabel id="unpaid-fees-label">Unpaid Fees</InputLabel>
+              <MuiSelect
+                labelId="unpaid-fees-label"
+                multiple
+                value={selectedFeeIds}
+                onChange={(e: SelectChangeEvent<string[]>) => {
+                  const v = e.target.value;
+                  setSelectedFeeIds(typeof v === "string" ? v.split(",") : v);
+                }}
+                input={<OutlinedInput label="Unpaid Fees" />}
+                renderValue={(selected:any) => {
+                  const ids = selected ;
+                  const byId = new Map(unpaidFees.map((f) => [f.id, f]));
+                  return ids
+                    .map((id:any) => {
+                      const fee = byId.get(id);
+                      return fee
+                        ? `${formatMonth(fee.month)} - Rs ${fee.amount}`
+                        : id;
+                    })
+                    .join(", ");
+                }}
+              >
+                {unpaidFees.map((fee) => (
+                  <MenuItem key={fee.id} value={fee.id}>
+                    {formatMonth(fee.month)} - Rs {fee.amount}
+                  </MenuItem>
+                ))}
+              </MuiSelect>
+            </FormControl>
           </div>
         )}
 
@@ -534,11 +604,28 @@ function PaymentModal({
 
         <div>
           <div className="text-xs text-gray-600 mb-1">Transaction Type</div>
-          <Select value={transactionType} onChange={(e) => setTransactionType(e.target.value as typeof transactionType)}>
-            <option value="Cash">Cash</option>
-            <option value="Cheque">Cheque</option>
-            <option value="DD">DD</option>
-          </Select>
+          <FormControl fullWidth size="small">
+            <MuiSelect
+              value={transactionType}
+              onChange={(e) =>
+                setTransactionType(e.target.value as "Cash" | "Cheque" | "DD")
+              }
+              sx={{
+                height: 36,
+                borderRadius: 2,
+                backgroundColor: "#fff",
+                ".MuiSelect-select": {
+                  py: 0.5,
+                  fontSize: 14,
+                  fontWeight: 600,
+                },
+              }}
+            >
+              <MenuItem value="Cash">Cash</MenuItem>
+              <MenuItem value="Cheque">Cheque</MenuItem>
+              <MenuItem value="DD">DD</MenuItem>
+            </MuiSelect>
+          </FormControl>
         </div>
 
         {transactionType === "Cheque" && (
@@ -590,18 +677,8 @@ function PaymentModal({
             <div className="text-xs text-gray-500 mt-2">Total: Rs {cashTotal}</div>
           </div>
         )}
-
-        <div className="pt-2 flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={handlePay} 
-            disabled={transactionType === "Cash" && cashTotal !== calculatedTotal}
-          >
-            Pay
-          </Button>
-        </div>
       </div>
-    </Modal>
+    </Drawer>
   );
 }
 
@@ -620,7 +697,20 @@ function ReceiptModal({
   const total = payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <Modal open={open} title="Payment Receipt" onClose={onClose} className="receipt-modal">
+    <Modal
+      open={open}
+      title="Payment Receipt"
+      onClose={onClose}
+      className="receipt-modal"
+      footer={
+        <>
+          <Button variant="secondary" onClick={() => window.print()}>
+            Print Receipt
+          </Button>
+          <Button onClick={onClose}>Close</Button>
+        </>
+      }
+    >
       <div className="space-y-4">
         <div className="text-center">
           <h3 className="text-lg font-semibold">School Fee Payment Receipt</h3>
@@ -687,10 +777,6 @@ function ReceiptModal({
             </div>
           </div>
         )}
-        <div className="pt-4 flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => window.print()}>Print Receipt</Button>
-          <Button onClick={onClose}>Close</Button>
-        </div>
       </div>
     </Modal>
   );
@@ -765,15 +851,13 @@ function EditFeeModal({
     setRoundup(false);
     setRoundupValue(10);
     setCouponDiscount(0);
-    setCashBreakdown({
-      "2000": 0,
-      "500": 0,
-      "100": 0,
-      "50": 0,
-      "20": 0,
-      "10": 0,
-      "1": 0,
-    });
+    const denomKeys = ["2000", "500", "100", "50", "20", "10", "1"] as const;
+    const fromFee = editing.cashBreakdown;
+    setCashBreakdown(
+      Object.fromEntries(
+        denomKeys.map((k) => [k, fromFee?.[k] ?? 0]),
+      ) as Record<string, number>,
+    );
   }, [open, editing]);
 
   const handleSave = () => {
@@ -825,36 +909,99 @@ function EditFeeModal({
   };
 
   return (
-    <Modal open={open} title="Edit Fee Record" onClose={onClose}>
-      <div className="space-y-4">
+    <Modal
+      open={open}
+      title="Edit Fee Record"
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={transactionType === "Cash" && cashTotal !== calculatedTotal}
+          >
+            Save Changes
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4 pb-2">
         <div>
           <div className="text-xs text-gray-600 mb-1">Student</div>
-          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            <option value="">Select Student</option>
-            {students.map((st) => (
-              <option key={st.id} value={st.id}>{st.name}</option>
-            ))}
-          </Select>
+          <FormControl fullWidth size="small">
+            <MuiSelect
+              displayEmpty
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              sx={{
+                height: 36,
+                borderRadius: 2,
+                backgroundColor: "#fff",
+                ".MuiSelect-select": {
+                  py: 0.5,
+                  fontSize: 14,
+                  fontWeight: 600,
+                },
+              }}
+              renderValue={(selected) => {
+                if (!selected) {
+                  return (
+                    <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                      Select Student
+                    </span>
+                  );
+                }
+                return students.find((s) => s.id === selected)?.name ?? selected;
+              }}
+            >
+              <MenuItem value="">
+                <em style={{ color: "#6b7280" }}>Select Student</em>
+              </MenuItem>
+              {students.map((st) => (
+                <MenuItem key={st.id} value={st.id}>
+                  {st.name}
+                </MenuItem>
+              ))}
+            </MuiSelect>
+          </FormControl>
         </div>
 
         {studentId && unpaidFees.length > 0 && (
           <div>
             <div className="text-xs text-gray-600 mb-1">Unpaid Fees</div>
-            <Select
-              
-              value={selectedFeeIds}
-              onChange={(e) => {
-                const options = Array.from(e.target.selectedOptions, option => option.value);
-                setSelectedFeeIds(options);
-              }}
-              className="w-full"
-            >
-              {unpaidFees.map((fee) => (
-                <option key={fee.id} value={fee.id}>
-                  {formatMonth(fee.month)} - Rs {fee.amount}
-                </option>
-              ))}
-            </Select>
+            <FormControl fullWidth size="small">
+              <InputLabel id="unpaid-fees-edit-label">Unpaid Fees</InputLabel>
+              <MuiSelect
+                labelId="unpaid-fees-edit-label"
+                multiple
+                value={selectedFeeIds}
+                onChange={(e: SelectChangeEvent<string[]>) => {
+                  const v = e.target.value;
+                  setSelectedFeeIds(typeof v === "string" ? v.split(",") : v);
+                }}
+                input={<OutlinedInput label="Unpaid Fees" />}
+                renderValue={(selected:any) => {
+                  const ids = selected as string[];
+                  const byId = new Map(unpaidFees.map((f) => [f.id, f]));
+                  return ids
+                    .map((id) => {
+                      const fee = byId.get(id);
+                      return fee
+                        ? `${formatMonth(fee.month)} - Rs ${fee.amount}`
+                        : id;
+                    })
+                    .join(", ");
+                }}
+              >
+                {unpaidFees.map((fee) => (
+                  <MenuItem key={fee.id} value={fee.id}>
+                    {formatMonth(fee.month)} - Rs {fee.amount}
+                  </MenuItem>
+                ))}
+              </MuiSelect>
+            </FormControl>
           </div>
         )}
 
@@ -948,11 +1095,28 @@ function EditFeeModal({
 
         <div>
           <div className="text-xs text-gray-600 mb-1">Transaction Type</div>
-          <Select value={transactionType} onChange={(e) => setTransactionType(e.target.value as typeof transactionType)}>
-            <option value="Cash">Cash</option>
-            <option value="Cheque">Cheque</option>
-            <option value="DD">DD</option>
-          </Select>
+          <FormControl fullWidth size="small">
+            <MuiSelect
+              value={transactionType}
+              onChange={(e) =>
+                setTransactionType(e.target.value as "Cash" | "Cheque" | "DD")
+              }
+              sx={{
+                height: 36,
+                borderRadius: 2,
+                backgroundColor: "#fff",
+                ".MuiSelect-select": {
+                  py: 0.5,
+                  fontSize: 14,
+                  fontWeight: 600,
+                },
+              }}
+            >
+              <MenuItem value="Cash">Cash</MenuItem>
+              <MenuItem value="Cheque">Cheque</MenuItem>
+              <MenuItem value="DD">DD</MenuItem>
+            </MuiSelect>
+          </FormControl>
         </div>
 
         {transactionType === "Cheque" && (
@@ -1004,16 +1168,6 @@ function EditFeeModal({
             <div className="text-xs text-gray-500 mt-2">Total: Rs {cashTotal}</div>
           </div>
         )}
-
-        <div className="pt-2 flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={transactionType === "Cash" && cashTotal !== calculatedTotal}
-          >
-            Save Changes
-          </Button>
-        </div>
       </div>
     </Modal>
   );
