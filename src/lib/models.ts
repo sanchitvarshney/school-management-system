@@ -74,6 +74,12 @@ export type Fee = {
   amount: number;
   status: FeeStatus;
   paidDate?: string; // ISO
+  transactionType?: "Cash" | "Cheque" | "DD";
+  chequeNumber?: string;
+  chequeExpiryDate?: string;
+  bankName?: string;
+  ddNumber?: string;
+  cashBreakdown?: Record<string, number>; // denomination -> count, e.g. { "2000": 1, "500": 2 }
 };
 
 export type Exam = {
