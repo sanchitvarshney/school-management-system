@@ -5,11 +5,13 @@ export function Modal({
   title,
   children,
   onClose,
+  className,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   if (!open) return null;
   return (
@@ -20,7 +22,7 @@ export function Modal({
         onClick={onClose}
         aria-label="Close modal"
       />
-      <div className="relative w-full max-w-xl rounded-2xl bg-white shadow-xl border border-gray-200">
+      <div className={`relative w-full max-w-xl rounded-2xl bg-white shadow-xl border border-gray-200 ${className || ""}`}>
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
           <div className="text-sm font-semibold text-gray-900">{title}</div>
           <button
