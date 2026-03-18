@@ -4,21 +4,45 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronDown,
-  Home,
-  Menu,
-  Bell,
-  Settings,
-  X,
-  Pencil,
-  UserPlus,
-} from "lucide-react";
+  CloseRounded as CloseIcon,
+  HomeRounded as HomeIcon,
+  KeyboardArrowDownRounded as KeyboardArrowDownIcon,
+  LogoutRounded as LogoutIcon,
+  MenuRounded as MenuIcon,
+  NotificationsNoneRounded as NotificationsIcon,
+  PersonAddRounded as PersonAddIcon,
+  SettingsRounded as SettingsIcon,
+} from "@mui/icons-material";
+import FormControl from "@mui/material/FormControl";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import Avatar from "@mui/material/Avatar";
+import Menu from "@mui/material/Menu";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Typography from "@mui/material/Typography";
+import { useRouter } from "next/navigation";
+import { IconButton } from "@mui/material";
+
+/** Demo account; replace with real auth user when available */
+const defaultAccount = {
+  firstName: "Admin",
+  lastName: "User",
+  email: "admin@school.edu",
+  avatarUrl: "https://github.com/shadcn.png",
+};
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const sessions = ["2024-2025", "2025-2026", "2026-2027"] as const;
   const [sessionValue, setSessionValue] = useState<string>(sessions[1]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(
+    null,
+  );
+  const userMenuOpen = Boolean(userMenuAnchor);
+  const data = defaultAccount;
 
   useEffect(() => {
     const read = () => {
@@ -42,8 +66,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [notificationsOpen]);
 
   const nav = [
-    { href: "/", label: "Home", icon: Home },
-    { href: "/menu", label: "Menu", icon: Menu },
+    { href: "/", label: "Home", icon: HomeIcon },
+    { href: "/menu", label: "Menu", icon: MenuIcon },
   ];
 
   function setSession(next: string) {
@@ -52,6 +76,18 @@ export function AppShell({ children }: { children: ReactNode }) {
       setSessionValue(next);
       window.dispatchEvent(new Event("sms:session-changed"));
     } catch {}
+  }
+
+  function closeUserMenu() {
+    setUserMenuAnchor(null);
+  }
+
+  function handleLogout() {
+    closeUserMenu();
+    try {
+      localStorage.removeItem("sms:session");
+    } catch {}
+    router.push("/");
   }
 
   return (
@@ -74,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     : "bg-white border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-200",
                 ].join(" ")}
               >
-                <Icon className="h-5 w-5" />
+                <Icon sx={{ fontSize: 20 }} />
               </Link>
             );
           })}
@@ -86,54 +122,127 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-label="Open notifications"
           title="Notifications"
         >
-          <Bell className="h-6 w-6 text-gray-700" />
+          <NotificationsIcon sx={{ fontSize: 22, color: "#374151" }} />
           <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
             2
           </span>
         </button>
-        <Settings className="h-6 w-6 text-gray-700" />
+        <SettingsIcon sx={{ fontSize: 22, color: "#374151" }} />
       </aside>
 
       <header className="col-start-2 col-end-3 border-b-4 border-b-[#00a6f4] flex items-center justify-between px-4 py-[10px] bg-[#cefafe]">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Session</span>
-            <div className="relative">
-              <select
-                className="h-9 appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-9 text-sm font-medium text-gray-900 outline-none focus:ring-2 focus:ring-indigo-600"
+            <FormControl size="small">
+              <Select
                 value={sessionValue}
-                onChange={(e) => setSession(e.target.value)}
+                onChange={(e) => setSession(String(e.target.value))}
+                sx={{
+                  height: 36,
+                  minWidth: 140,
+                  borderRadius: 2,
+                  backgroundColor: "#fff",
+                  ".MuiSelect-select": {
+                    py: 0.5,
+                    fontSize: 14,
+                    fontWeight: 600,
+                  },
+                }}
               >
                 {sessions.map((s) => (
-                  <option key={s} value={s}>
+                  <MenuItem key={s} value={s}>
                     {s}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            </div>
+              </Select>
+            </FormControl>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 hover:bg-gray-50"
-            onClick={() => {
-              try {
-                localStorage.removeItem("sms:db");
-                window.location.reload();
-              } catch {}
+          {/* Avoid nesting <button> inside <button> (IconButton is a <button>) */}
+          <div className="flex items-center justify-between gap-2 bg-white max-w-[280px] w-full px-3 py-2 rounded-lg border border-gray-200">
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+              <Avatar
+                src={data.avatarUrl}
+                alt=""
+                sx={{ width: 36, height: 36 }}
+              />
+            </span>
+            <IconButton
+              onClick={(e) => setUserMenuAnchor(e.currentTarget)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              sx={{}}
+            >
+              {" "}
+              <KeyboardArrowDownIcon
+                sx={{ flexShrink: 0, color: "text.secondary", fontSize: 22 }}
+              />
+            </IconButton>
+          </div>
+          <Menu
+            anchorEl={userMenuAnchor}
+            open={userMenuOpen}
+            onClose={closeUserMenu}
+            anchorOrigin={{ vertical: "top", horizontal: "right" }}
+            transformOrigin={{ vertical: "bottom", horizontal: "right" }}
+            slotProps={{
+              paper: {
+                elevation: 4,
+                sx: {
+                  minWidth: 220,
+                  mt: 4,
+                  ml: 0,
+                  borderRadius: 1,
+                  p: 2,
+                  bgcolor: "background.paper",
+                  overflow: "visible",
+                },
+              },
             }}
-            title="Reset demo data"
           >
-            Reset
-          </button>
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <Avatar
+                src={data.avatarUrl}
+                alt=""
+                sx={{ width: 36, height: 36 }}
+              />
+
+              <div className="flex min-w-0 flex-col items-start text-left">
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                  color="text.primary"
+                  noWrap
+                  sx={{ maxWidth: 140, lineHeight: 1.2 }}
+                >
+                  {data.firstName} {data.lastName}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  noWrap
+                  sx={{ maxWidth: 160, fontSize: 13 }}
+                >
+                  {data.email ?? ""}
+                </Typography>
+              </div>
+            </div>
+
+            <MenuItem onClick={handleLogout} sx={{ py: 1, mt: 1 }}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" sx={{ color: "#4b5563" }} />
+              </ListItemIcon>
+              <ListItemText primary="Logout" />
+            </MenuItem>
+          </Menu>
         </div>
       </header>
 
       <main className="col-start-2 col-end-3 overflow-auto bg-gray-50">
-        <div className="p-6">{children}</div>
+        <div className="p-0">{children}</div>
       </main>
 
       {notificationsOpen && (
@@ -154,26 +263,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-label="Close"
                   title="Close"
                 >
-                  <X className="h-5 w-5 text-gray-800" />
+                  <CloseIcon sx={{ fontSize: 20, color: "#1f2937" }} />
                 </button>
                 <div className="text-base font-semibold text-gray-900">
                   Messages
                 </div>
               </div>
-              <button
-                type="button"
-                className="h-10 w-10 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700"
-                aria-label="New message"
-                title="New message"
-              >
-                <Pencil className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="px-4 pb-3">
-              <div className="text-xs font-semibold text-gray-700">
-                Messages
-              </div>
+              <span className="text-xs text-gray-500 cursor-pointer hover:underline ">
+                Mark all as read
+              </span>
             </div>
 
             <div className="px-4 pb-4 overflow-auto h-[calc(100%-64px-12px-32px)] space-y-3">
@@ -193,7 +291,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
               <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-3 flex items-center gap-3">
                 <div className="h-12 w-12 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-700">
-                  <UserPlus className="h-6 w-6" />
+                  <PersonAddIcon sx={{ fontSize: 22 }} />
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-gray-900">
@@ -245,17 +343,7 @@ function NotificationItem({
           <div className="text-sm text-gray-600 truncate">{subtitle}</div>
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="text-xs text-gray-500">{time}</div>
-        <button
-          type="button"
-          className="h-9 w-9 rounded-xl hover:bg-gray-100 text-gray-700"
-          aria-label="More"
-          title="More"
-        >
-          …
-        </button>
-      </div>
+      <div className="shrink-0 text-xs text-gray-500">{time}</div>
     </div>
   );
 }

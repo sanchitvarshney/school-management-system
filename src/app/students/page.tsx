@@ -1,18 +1,63 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { SlideOver } from "@/components/ui/SlideOver";
-import { Table, Td, Th } from "@/components/ui/Table";
+import Paper from "@mui/material/Paper";
+import FormControl from "@mui/material/FormControl";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import type { ClassRoom, Section, SmsDb, Student } from "@/lib/models";
 import { getDb, getSelectedSessionId, setDb } from "@/lib/storage";
 import { uid } from "@/lib/utils";
+import { DataGrid } from "@mui/x-data-grid/DataGrid";
+import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import Typography from "@mui/material/Typography";
+
+const columns: GridColDef<Student>[] = [
+  {
+    field: "name",
+    headerName: "Name",
+    width: 200,
+    valueGetter: (_value, row) => row?.name ?? "",
+    renderCell: (params: GridRenderCellParams<Student>) => (
+      <Link
+        href={`/students/view?roll=${encodeURIComponent(params.row.rollNo)}&class=${encodeURIComponent(params.row.classId)}&ref=${encodeURIComponent(params.row.sectionId)}`}
+        className="text-indigo-700 font-semibold hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {params.row.name}
+      </Link>
+    ),
+  },
+  {
+    field: "rollNo",
+    headerName: "Father / Roll No.",
+    width: 180,
+    flex: 0,
+    // Plain string for sort/filter/export — JSX belongs in renderCell only
+    valueGetter: (_value, row) =>
+      `${row?.fatherName ?? ""} · ${row?.rollNo ?? ""}`,
+    renderCell: (params: GridRenderCellParams<Student>) => {
+      const row = params.row;
+      return (
+        <div className="flex flex-col justify-center py-0.5 leading-tight">
+          <Typography variant="body2" component="span">
+            {row?.fatherName ?? "Father name not set"}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" component="span">
+            Roll No. {row?.rollNo ?? "—"}
+          </Typography>
+        </div>
+      );
+    },
+  },
+
+];
 
 export default function StudentsPage() {
   const [db, setDbState] = useState<SmsDb | null>(null);
@@ -24,7 +69,6 @@ export default function StudentsPage() {
   const [results, setResults] = useState<Student[]>([]);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [editing] = useState<Student | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -39,15 +83,15 @@ export default function StudentsPage() {
 
   const students = useMemo(
     () => db?.sessions?.[sessionId]?.students ?? [],
-    [db, sessionId]
+    [db, sessionId],
   );
   const classes = useMemo(
     () => db?.sessions?.[sessionId]?.classes ?? [],
-    [db, sessionId]
+    [db, sessionId],
   );
   const sections = useMemo(
     () => db?.sessions?.[sessionId]?.sections ?? [],
-    [db, sessionId]
+    [db, sessionId],
   );
 
   // Default to Grade 8 with 8A selected so 8A–8K show on load (like reference design)
@@ -56,20 +100,25 @@ export default function StudentsPage() {
     const grade8 = classes.find((c) => c.name === "8");
     if (grade8) {
       setFilterGradeId(grade8.id);
-      const grade8Sections = sections.filter((sec) => sec.classId === grade8.id);
+      const grade8Sections = sections.filter(
+        (sec) => sec.classId === grade8.id,
+      );
       const firstSection = grade8Sections[0];
       if (firstSection) setFilterSectionIds([firstSection.id]);
     }
   }, [db, classes, sections, filterGradeId]);
 
   const sectionsForGrade = useMemo(
-    () => sections.filter((sec) => (filterGradeId ? sec.classId === filterGradeId : false)),
-    [sections, filterGradeId]
+    () =>
+      sections.filter((sec) =>
+        filterGradeId ? sec.classId === filterGradeId : false,
+      ),
+    [sections, filterGradeId],
   );
 
   function toggleSection(id: string) {
     setFilterSectionIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
 
@@ -100,23 +149,27 @@ export default function StudentsPage() {
       : [nextStudent, ...ss.students];
     const nextDb: SmsDb = {
       ...db,
-      sessions: { ...db.sessions, [sessionId]: { ...ss, students: nextStudents } },
+      sessions: {
+        ...db.sessions,
+        [sessionId]: { ...ss, students: nextStudents },
+      },
     };
     setDb(nextDb);
     setDbState(nextDb);
   }
 
-  const classNameById = useMemo(() => new Map(classes.map((c) => [c.id, c.name])), [classes]);
+  const classNameById = useMemo(
+    () => new Map(classes.map((c) => [c.id, c.name])),
+    [classes],
+  );
   const sectionNameById = useMemo(() => {
     return new Map(
-      sections.map((sec) => [sec.id, `${classNameById.get(sec.classId) ?? ""}-${sec.name}`])
+      sections.map((sec) => [
+        sec.id,
+        `${classNameById.get(sec.classId) ?? ""}-${sec.name}`,
+      ]),
     );
   }, [sections, classNameById]);
-
-  const selectedStudent = useMemo(
-    () => results.find((st) => st.id === selectedStudentId) ?? results[0] ?? null,
-    [results, selectedStudentId]
-  );
 
   const resultsFromFilters = useMemo(() => {
     const grade = filterGradeId.trim();
@@ -133,14 +186,14 @@ export default function StudentsPage() {
 
   useEffect(() => {
     setResults(resultsFromFilters);
-    setSelectedStudentId(resultsFromFilters[0]?.id ?? null);
   }, [resultsFromFilters]);
 
   const showResults = filterGradeId !== "";
 
   const filterSummaryTitle = useMemo(() => {
     const g = classes.find((c) => c.id === filterGradeId)?.name ?? "All";
-    if (filterSectionIds.length === 0) return filterGradeId ? `Grade: ${g}` : "All students";
+    if (filterSectionIds.length === 0)
+      return filterGradeId ? `Grade: ${g}` : "All students";
     const names = filterSectionIds
       .map((id) => sectionNameById.get(id))
       .filter(Boolean)
@@ -150,199 +203,176 @@ export default function StudentsPage() {
 
   return (
     <AppShell>
-      <div className="max-w-6xl mx-auto space-y-4">
-          <Card>
-            <CardHeader title="Attendance & Students" subtitle="Select grade, class, date and student name" />
-            <CardBody>
-              <div className="space-y-4">
-                {/* Filter bar: grade dropdown + scrollable class (section) checkboxes */}
-                <div className="rounded-xl bg-[#326e89] text-white px-4 py-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                  <div className="flex h-10 shrink-0 items-center">
-                    <select
-                      className="h-10 min-w-[200px] rounded-lg border border-gray-300 bg-white px-3 pr-9 text-sm text-gray-500 shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/30 appearance-none bg-[length:14px] bg-[right_10px_center] bg-no-repeat"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                      }}
+      <div className="w-full  space-y-4">
+        <Card>
+          <CardBody>
+            <div className="space-y-4">
+              {/* Filter bar: grade dropdown + scrollable class (section) checkboxes */}
+              <div className="bg-[#002147] text-white px-4 py-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <div className="flex h-10 shrink-0 items-center">
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <Select
                       value={filterGradeId}
-                      onChange={(e) => onGradeChange(e.target.value)}
+                      displayEmpty
+                      onChange={(e) => onGradeChange(String(e.target.value))}
+                      sx={{
+                        height: 40,
+                        borderRadius: 2,
+                        backgroundColor: "#fff",
+                        ".MuiSelect-select": {
+                          py: 0.5,
+                          fontSize: 14,
+                          fontWeight: 600,
+                        },
+                      }}
+                      renderValue={(value) => {
+                        const v = String(value ?? "");
+                        if (!v) return "Select Grade";
+                        return (
+                          classes.find((c) => c.id === v)?.name ??
+                          "Select Grade"
+                        );
+                      }}
                     >
-                      <option value="">Select Grade</option>
                       {classes.map((c) => (
-                        <option key={c.id} value={c.id} className="text-gray-900">
+                        <MenuItem key={c.id} value={c.id}>
                           {c.name}
-                        </option>
+                        </MenuItem>
                       ))}
-                    </select>
-                  </div>
+                    </Select>
+                  </FormControl>
+                </div>
 
-                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                    <span className="shrink-0 text-sm font-bold leading-none text-white">
-                      Select Class
-                    </span>
-                    {/* Single row: h-10 matches grade dropdown; arrows + scroll + Select All share same height */}
-                    <div className="flex h-10 min-w-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                      <button
-                        type="button"
-                        aria-label="Scroll classes left"
-                        onClick={() => scrollClassRow(-1)}
-                        disabled={!filterGradeId || sectionsForGrade.length === 0}
-                        className="flex h-10 w-8 shrink-0 items-center justify-center border-r border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
-                      >
-                        ‹
-                      </button>
-                      <div
-                        ref={classScrollRef}
-                        tabIndex={-1}
-                        className="class-strip-scroll flex h-10 min-h-10 min-w-0 flex-1 touch-pan-y items-center overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-                        onWheel={(e) => {
-                          if (e.shiftKey) e.preventDefault();
-                          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) e.preventDefault();
-                        }}
-                      >
-                        {filterGradeId === "" ? (
-                          <span className="flex h-10 items-center px-3 text-sm text-gray-400">
-                            Select a grade to see classes
-                          </span>
-                        ) : sectionsForGrade.length === 0 ? (
-                          <span className="flex h-10 items-center px-3 text-sm text-gray-400">
-                            No sections for this grade
-                          </span>
-                        ) : (
-                          sectionsForGrade.map((sec, i) => {
-                            const cn = classNameById.get(sec.classId) ?? "";
-                            const label =
-                              cn && sec.name
-                                ? `${cn.replace(/\s/g, "")}${sec.name}`
-                                : (sectionNameById.get(sec.id) ?? sec.name);
-                            const checked = filterSectionIds.includes(sec.id);
-                            return (
-                              <label
-                                key={sec.id}
-                                className={[
-                                  "flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-gray-200 px-3 text-sm leading-none",
-                                  checked ? "text-gray-800" : "text-gray-400",
-                                  i > 0 ? "border-l" : "",
-                                ].join(" ")}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleSection(sec.id)}
-                                  className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="font-medium">{label}</span>
-                              </label>
-                            );
-                          })
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="Scroll classes right"
-                        onClick={() => scrollClassRow(1)}
-                        disabled={!filterGradeId || sectionsForGrade.length === 0}
-                        className="flex h-10 w-8 shrink-0 items-center justify-center border-l border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
-                      >
-                        ›
-                      </button>
-                      <button
-                        type="button"
-                        onClick={selectAllSectionsForGrade}
-                        disabled={!filterGradeId || sectionsForGrade.length === 0}
-                        className="flex h-10 shrink-0 items-center border-l border-gray-200 bg-[#00B4D8] px-3 text-[10px] font-bold uppercase leading-tight tracking-wide text-white hover:bg-[#0096c7] disabled:opacity-40 sm:px-4 sm:text-xs"
-                      >
-                        Select All
-                      </button>
+                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                  <span className="shrink-0 text-sm font-bold leading-none text-white">
+                    Select Class
+                  </span>
+                  {/* Single row: h-10 matches grade dropdown; arrows + scroll + Select All share same height */}
+                  <div className="flex h-10 min-w-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button
+                      type="button"
+                      aria-label="Scroll classes left"
+                      onClick={() => scrollClassRow(-1)}
+                      disabled={!filterGradeId || sectionsForGrade.length === 0}
+                      className="flex h-10 w-8 shrink-0 items-center justify-center border-r border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
+                    >
+                      ‹
+                    </button>
+                    <div
+                      ref={classScrollRef}
+                      tabIndex={-1}
+                      className="class-strip-scroll flex h-10 min-h-10 min-w-0 flex-1 touch-pan-y items-center overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                      onWheel={(e) => {
+                        if (e.shiftKey) e.preventDefault();
+                        if (Math.abs(e.deltaX) > Math.abs(e.deltaY))
+                          e.preventDefault();
+                      }}
+                    >
+                      {filterGradeId === "" ? (
+                        <span className="flex h-10 items-center px-3 text-sm text-gray-400">
+                          Select a grade to see classes
+                        </span>
+                      ) : sectionsForGrade.length === 0 ? (
+                        <span className="flex h-10 items-center px-3 text-sm text-gray-400">
+                          No sections for this grade
+                        </span>
+                      ) : (
+                        sectionsForGrade.map((sec, i) => {
+                          const cn = classNameById.get(sec.classId) ?? "";
+                          const label =
+                            cn && sec.name
+                              ? `${cn.replace(/\s/g, "")}${sec.name}`
+                              : (sectionNameById.get(sec.id) ?? sec.name);
+                          const checked = filterSectionIds.includes(sec.id);
+                          return (
+                            <label
+                              key={sec.id}
+                              className={[
+                                "flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-gray-200 px-3 text-sm leading-none",
+                                checked ? "text-gray-800" : "text-gray-400",
+                                i > 0 ? "border-l" : "",
+                              ].join(" ")}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSection(sec.id)}
+                                className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="font-medium">{label}</span>
+                            </label>
+                          );
+                        })
+                      )}
                     </div>
+                    <button
+                      type="button"
+                      aria-label="Scroll classes right"
+                      onClick={() => scrollClassRow(1)}
+                      disabled={!filterGradeId || sectionsForGrade.length === 0}
+                      className="flex h-10 w-8 shrink-0 items-center justify-center border-l border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
+                    >
+                      ›
+                    </button>
+                    <button
+                      type="button"
+                      onClick={selectAllSectionsForGrade}
+                      disabled={!filterGradeId || sectionsForGrade.length === 0}
+                      className="flex h-10 shrink-0 items-center border-l border-gray-200 bg-[#00B4D8] px-3 text-[10px] font-bold uppercase leading-tight tracking-wide text-white hover:bg-[#0096c7] disabled:opacity-40 sm:px-4 sm:text-xs"
+                    >
+                      Select All
+                    </button>
                   </div>
-
                 </div>
               </div>
+            </div>
           </CardBody>
         </Card>
 
         {showResults && (
           <div className="grid grid-cols-1 gap-4">
-          <Card>
-            <CardHeader
-              title={filterSummaryTitle}
-              subtitle={`Students: ${results.length}`}
-              right={
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-600">Enter student name</span>
-                  <Input
-                    placeholder="Search..."
-                    className="h-8 w-48 rounded-lg text-sm"
-                    onChange={(e) => {
-                      const value = e.target.value.toLowerCase();
-                      const filtered = students.filter((st) => {
-                        if (filterGradeId && st.classId !== filterGradeId) return false;
-                        if (
-                          filterSectionIds.length > 0 &&
-                          !filterSectionIds.includes(st.sectionId)
-                        )
-                          return false;
-                        return st.name.toLowerCase().includes(value);
-                      });
-                      setResults(filtered);
-                      setSelectedStudentId(filtered[0]?.id ?? null);
-                    }}
-                  />
-                </div>
-              }
-            />
-            <CardBody>
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>Student Name</Th>
-                    <Th>Father / Roll No.</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((st) => {
-                    const active = selectedStudent?.id === st.id;
-                    return (
-                      <tr
-                        key={st.id}
-                        className={[
-                          "cursor-pointer",
-                          active ? "bg-indigo-50" : "hover:bg-gray-50",
-                        ].join(" ")}
-                        onClick={() => setSelectedStudentId(st.id)}
-                      >
-                        <Td>
-                          <Link
-                            href={`/students/view?roll=${encodeURIComponent(st.rollNo)}&class=${encodeURIComponent(st.classId)}&ref=${encodeURIComponent(st.sectionId)}`}
-                            className="text-indigo-700 font-semibold hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {st.name}
-                          </Link>
-                        </Td>
-                        <Td>
-                          <div className="text-sm text-gray-800">
-                            <div>{st.fatherName ?? "Father name not set"}</div>
-                            <div className="text-xs text-gray-500">Roll No. {st.rollNo}</div>
-                          </div>
-                        </Td>
-                      </tr>
-                    );
-                  })}
-                  {results.length === 0 && (
-                    <tr>
-                      <Td>
-                        <span className="text-gray-500">No students found.</span>
-                      </Td>
-                      <Td />
-                    </tr>
-                  )}
-                </tbody>
-              </Table>
-            </CardBody>
-          </Card>
+            <Card>
+              <CardHeader
+                title={filterSummaryTitle}
+                subtitle={`Students: ${results.length}`}
+                right={
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search..."
+                      className="h-8 w-48 rounded-lg text-sm"
+                      onChange={(e) => {
+                        const value = e.target.value.toLowerCase();
+                        const filtered = students.filter((st) => {
+                          if (filterGradeId && st.classId !== filterGradeId)
+                            return false;
+                          if (
+                            filterSectionIds.length > 0 &&
+                            !filterSectionIds.includes(st.sectionId)
+                          )
+                            return false;
+                          return (st.name ?? "").toLowerCase().includes(value);
+                        });
+                        setResults(filtered);
+                      }}
+                    />
+                  </div>
+                }
+              />
 
-          {/* Right side reserved for future attendance details; hidden on this screen */}
+              <Paper
+                elevation={0}
+                sx={{ height: "calc(100vh - 240px)", width: "100%", p: 2 }}
+              >
+                <DataGrid
+                  rows={results}
+                  columns={columns}
+                  pageSizeOptions={[5, 10]}
+                  sx={{ border: 0 }}
+                />
+              </Paper>
+            </Card>
+
+            {/* Right side reserved for future attendance details; hidden on this screen */}
           </div>
         )}
       </div>
@@ -362,7 +392,6 @@ export default function StudentsPage() {
           setRegisterOpen(false);
         }}
       />
-
     </AppShell>
   );
 }
@@ -376,10 +405,18 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function SectionFieldset({ title, children }: { title: string; children: ReactNode }) {
+function SectionFieldset({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <fieldset className="rounded-2xl border border-gray-200 bg-white">
-      <legend className="ml-4 px-3 text-sm font-semibold text-gray-900">{title}</legend>
+      <legend className="ml-4 px-3 text-sm font-semibold text-gray-900">
+        {title}
+      </legend>
       <div className="p-4 sm:p-5 space-y-4">{children}</div>
     </fieldset>
   );
@@ -446,7 +483,7 @@ function StudentRegistrationDrawer({
     if (!open) return;
     setAdmissionId(editing?.admissionId ?? "");
     setRollNo(editing?.rollNo ?? "");
-    setClassId(editing?.classId ?? (classes[0]?.id ?? ""));
+    setClassId(editing?.classId ?? classes[0]?.id ?? "");
     setSectionId(editing?.sectionId ?? "");
     setGuardianPhone(editing?.guardianPhone ?? "");
 
@@ -483,7 +520,7 @@ function StudentRegistrationDrawer({
 
   const filteredSections = useMemo(
     () => sections.filter((sec) => (classId ? sec.classId === classId : true)),
-    [sections, classId]
+    [sections, classId],
   );
 
   useEffect(() => {
@@ -492,19 +529,32 @@ function StudentRegistrationDrawer({
     setSectionId(filteredSections[0]?.id ?? "");
   }, [filteredSections, open, sectionId]);
 
-  const drawerTitle = editing ? "Student Registration (Edit)" : "Student Registration";
-  const fullName = [firstName, middleName, lastName].map((x) => x.trim()).filter(Boolean).join(" ");
+  const drawerTitle = editing
+    ? "Student Registration (Edit)"
+    : "Student Registration";
+  const fullName = [firstName, middleName, lastName]
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .join(" ");
   const displayName = (fullName || nickName || editing?.name || "").trim();
 
   return (
-    <SlideOver open={open} title={drawerTitle} onClose={onClose} closeOnOverlayClick={false}>
+    <SlideOver
+      open={open}
+      title={drawerTitle}
+      onClose={onClose}
+      closeOnOverlayClick={false}
+    >
       <div className="space-y-5">
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
           <div className="text-sm font-semibold text-gray-900">Student</div>
           <div className="text-sm text-gray-600">
             {displayName ? (
               <>
-                Editing: <span className="font-semibold text-gray-900">{displayName}</span>
+                Editing:{" "}
+                <span className="font-semibold text-gray-900">
+                  {displayName}
+                </span>
               </>
             ) : (
               "Enter details below to create a new student."
@@ -516,25 +566,40 @@ function StudentRegistrationDrawer({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div>
               <div className="text-xs text-gray-600 mb-1">First</div>
-              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              <Input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
             </div>
             <div>
               <div className="text-xs text-gray-600 mb-1">Middle</div>
-              <Input value={middleName} onChange={(e) => setMiddleName(e.target.value)} />
+              <Input
+                value={middleName}
+                onChange={(e) => setMiddleName(e.target.value)}
+              />
             </div>
             <div>
               <div className="text-xs text-gray-600 mb-1">Last</div>
-              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <Input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
             </div>
           </div>
 
           <Field label="Nick Name">
-            <Input value={nickName} onChange={(e) => setNickName(e.target.value)} />
+            <Input
+              value={nickName}
+              onChange={(e) => setNickName(e.target.value)}
+            />
           </Field>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Field label="Gender">
-              <Select value={gender} onChange={(e) => setGender(e.target.value)}>
+              <Select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              >
                 <option value="">Select</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -543,16 +608,26 @@ function StudentRegistrationDrawer({
             </Field>
 
             <Field label="D.O.B">
-              <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+              <Input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+              />
             </Field>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Field label="Place of Birth">
-              <Input value={placeOfBirth} onChange={(e) => setPlaceOfBirth(e.target.value)} />
+              <Input
+                value={placeOfBirth}
+                onChange={(e) => setPlaceOfBirth(e.target.value)}
+              />
             </Field>
             <Field label="Religion">
-              <Input value={religion} onChange={(e) => setReligion(e.target.value)} />
+              <Input
+                value={religion}
+                onChange={(e) => setReligion(e.target.value)}
+              />
             </Field>
           </div>
 
@@ -561,17 +636,26 @@ function StudentRegistrationDrawer({
               <Input value={caste} onChange={(e) => setCaste(e.target.value)} />
             </Field>
             <Field label="Category">
-              <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+              <Input
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
             </Field>
             <Field label="Nationality">
-              <Input value={nationality} onChange={(e) => setNationality(e.target.value)} />
+              <Input
+                value={nationality}
+                onChange={(e) => setNationality(e.target.value)}
+              />
             </Field>
           </div>
         </SectionFieldset>
 
         <SectionFieldset title="Medical Information">
           <Field label="Any medical/physical condition?">
-            <Select value={medicalCondition} onChange={(e) => setMedicalCondition(e.target.value)}>
+            <Select
+              value={medicalCondition}
+              onChange={(e) => setMedicalCondition(e.target.value)}
+            >
               <option value="">Select</option>
               <option value="No">No</option>
               <option value="Yes">Yes</option>
@@ -590,24 +674,39 @@ function StudentRegistrationDrawer({
         <SectionFieldset title="Guardian Information">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Field label="Father's Name">
-              <Input value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
+              <Input
+                value={fatherName}
+                onChange={(e) => setFatherName(e.target.value)}
+              />
             </Field>
             <Field label="Mother's Name">
-              <Input value={motherName} onChange={(e) => setMotherName(e.target.value)} />
+              <Input
+                value={motherName}
+                onChange={(e) => setMotherName(e.target.value)}
+              />
             </Field>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Field label="Mobile No.">
-              <Input value={mobileNo} onChange={(e) => setMobileNo(e.target.value)} />
+              <Input
+                value={mobileNo}
+                onChange={(e) => setMobileNo(e.target.value)}
+              />
             </Field>
             <Field label="Alt Mobile No.">
-              <Input value={altMobileNo} onChange={(e) => setAltMobileNo(e.target.value)} />
+              <Input
+                value={altMobileNo}
+                onChange={(e) => setAltMobileNo(e.target.value)}
+              />
             </Field>
           </div>
 
           <Field label="Email ID">
-            <Input value={emailId} onChange={(e) => setEmailId(e.target.value)} />
+            <Input
+              value={emailId}
+              onChange={(e) => setEmailId(e.target.value)}
+            />
           </Field>
         </SectionFieldset>
 
@@ -620,7 +719,10 @@ function StudentRegistrationDrawer({
             />
           </Field>
           <Field label="Pin Code">
-            <Input value={currentPinCode} onChange={(e) => setCurrentPinCode(e.target.value)} />
+            <Input
+              value={currentPinCode}
+              onChange={(e) => setCurrentPinCode(e.target.value)}
+            />
           </Field>
 
           <Field label="Permanent Address">
@@ -631,16 +733,25 @@ function StudentRegistrationDrawer({
             />
           </Field>
           <Field label="Pin Code">
-            <Input value={permanentPinCode} onChange={(e) => setPermanentPinCode(e.target.value)} />
+            <Input
+              value={permanentPinCode}
+              onChange={(e) => setPermanentPinCode(e.target.value)}
+            />
           </Field>
         </SectionFieldset>
 
         <SectionFieldset title="Last School Attempt Information">
           <Field label="Board">
-            <Input value={lastSchoolBoard} onChange={(e) => setLastSchoolBoard(e.target.value)} />
+            <Input
+              value={lastSchoolBoard}
+              onChange={(e) => setLastSchoolBoard(e.target.value)}
+            />
           </Field>
           <Field label="School Name">
-            <Input value={lastSchoolName} onChange={(e) => setLastSchoolName(e.target.value)} />
+            <Input
+              value={lastSchoolName}
+              onChange={(e) => setLastSchoolName(e.target.value)}
+            />
           </Field>
           <Field label="School Address">
             <textarea
@@ -654,16 +765,27 @@ function StudentRegistrationDrawer({
         <SectionFieldset title="Admission / Class">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Field label="Admission ID">
-              <Input value={admissionId} onChange={(e) => setAdmissionId(e.target.value)} placeholder="(optional)" />
+              <Input
+                value={admissionId}
+                onChange={(e) => setAdmissionId(e.target.value)}
+                placeholder="(optional)"
+              />
             </Field>
             <Field label="Roll No.">
-              <Input value={rollNo} onChange={(e) => setRollNo(e.target.value)} placeholder="01" />
+              <Input
+                value={rollNo}
+                onChange={(e) => setRollNo(e.target.value)}
+                placeholder="01"
+              />
             </Field>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Field label="Class">
-              <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
+              <Select
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+              >
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -672,7 +794,10 @@ function StudentRegistrationDrawer({
               </Select>
             </Field>
             <Field label="Section">
-              <Select value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+              <Select
+                value={sectionId}
+                onChange={(e) => setSectionId(e.target.value)}
+              >
                 {filteredSections.map((sec) => (
                   <option key={sec.id} value={sec.id}>
                     {sec.name}
@@ -683,7 +808,11 @@ function StudentRegistrationDrawer({
           </div>
 
           <Field label="Guardian Phone">
-            <Input value={guardianPhone} onChange={(e) => setGuardianPhone(e.target.value)} placeholder="03xx..." />
+            <Input
+              value={guardianPhone}
+              onChange={(e) => setGuardianPhone(e.target.value)}
+              placeholder="03xx..."
+            />
           </Field>
         </SectionFieldset>
 
@@ -694,7 +823,10 @@ function StudentRegistrationDrawer({
           <Button
             onClick={() => {
               const name = (
-                [firstName, middleName, lastName].map((x) => x.trim()).filter(Boolean).join(" ") ||
+                [firstName, middleName, lastName]
+                  .map((x) => x.trim())
+                  .filter(Boolean)
+                  .join(" ") ||
                 nickName.trim() ||
                 editing?.name ||
                 ""
@@ -704,7 +836,8 @@ function StudentRegistrationDrawer({
               if (!rollNo.trim()) return alert("Roll no is required.");
               if (!classId) return alert("Class is required.");
               if (!sectionId) return alert("Section is required.");
-              if (!guardianPhone.trim()) return alert("Guardian phone is required.");
+              if (!guardianPhone.trim())
+                return alert("Guardian phone is required.");
 
               onSave({
                 name,
@@ -753,4 +886,3 @@ function StudentRegistrationDrawer({
     </SlideOver>
   );
 }
-

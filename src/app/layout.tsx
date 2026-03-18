@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { MuiProvider } from "@/components/MuiProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased font-sans ${dmSans.variable} ${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <MuiProvider>{children}</MuiProvider>
       </body>
     </html>
   );

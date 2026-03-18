@@ -78,7 +78,7 @@ export default function StudentProfilePage() {
             right={
               <div className="flex gap-2">
                 <Link href="/students">
-                  <Button variant="secondary">Back</Button>
+                  <Button variant="secondary">Bak</Button>
                 </Link>
               </div>
             }
