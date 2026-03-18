@@ -21,11 +21,48 @@ export type Section = {
 
 export type Student = {
   id: string;
-  name: string;
+  // Core identifiers
+  name: string; // display name (fallback: first + last)
+  admissionId?: string;
   rollNo: string;
   classId: string;
   sectionId: string;
   guardianPhone: string;
+
+  // Personal information
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  nickName?: string;
+  gender?: string;
+  dob?: string; // ISO yyyy-mm-dd
+  placeOfBirth?: string;
+  religion?: string;
+  caste?: string;
+  category?: string;
+  nationality?: string;
+
+  // Medical information
+  medicalCondition?: string; // yes/no
+  medicalDescription?: string;
+
+  // Guardian information
+  fatherName?: string;
+  motherName?: string;
+  mobileNo?: string;
+  altMobileNo?: string;
+  emailId?: string;
+
+  // Address
+  currentAddress?: string;
+  currentPinCode?: string;
+  permanentAddress?: string;
+  permanentPinCode?: string;
+
+  // Last school / attempt info
+  lastSchoolBoard?: string;
+  lastSchoolName?: string;
+  lastSchoolAddress?: string;
 };
 
 export type FeeStatus = "Paid" | "Due";
