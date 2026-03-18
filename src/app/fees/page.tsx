@@ -393,7 +393,7 @@ export default function FeesPage() {
           )}
 
           {tab === "filters" && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="m-2 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
                 <div className="text-sm font-semibold text-gray-900">
                   Search
@@ -553,7 +553,7 @@ export default function FeesPage() {
           )}
 
           {tab === "dashboard" && (
-            <div className="mt-4 space-y-4">
+            <div className="m-2 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Rows</div>
@@ -896,7 +896,7 @@ function PayStudentFeePanel({
   };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 m-2 min-h-[calc(100vh-140px)]">
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 m-2 min-h-[calc(100vh-160px)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-base font-semibold text-gray-900">
@@ -905,19 +905,6 @@ function PayStudentFeePanel({
           <div className="text-xs text-gray-500">
             Record a payment and print a receipt.
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={reset}>
-            Reset
-          </Button>
-          <Button
-            onClick={handlePay}
-            disabled={
-              transactionType === "Cash" && cashTotal !== calculatedTotal
-            }
-          >
-            Pay
-          </Button>
         </div>
       </div>
 
@@ -1066,24 +1053,42 @@ function PayStudentFeePanel({
               </div>
             </div>
           )}
-          <div>
-            <div className="text-xs text-gray-600 mb-1">Total Amount</div>
-            <Input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-            />
+          <div className="space-y-3 grid grid-cols-1 sm:grid-cols-2 gap-12">
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Total Amount</div>
+              <Input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={reset}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePay}
+                disabled={
+                  transactionType === "Cash" && cashTotal !== calculatedTotal
+                }
+              >
+                Pay
+              </Button>
+            </div>
           </div>
           <div>
             <div className="text-xs text-gray-600 mb-1">Transaction Type</div>
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" >
               <MuiSelect
                 value={transactionType}
                 onChange={(e) => {
-                  setTransactionType(e.target.value as "Cash" | "Cheque" | "DD");
+                  setTransactionType(
+                    e.target.value as "Cash" | "Cheque" | "DD",
+                  );
                   setTransactionDetailsOpen(true);
                 }}
                 sx={{
+                  maxWidth: { sm: 200, md:600 },
                   height: 36,
                   borderRadius: 2,
                   backgroundColor: "#fff",
@@ -1148,7 +1153,10 @@ function PayStudentFeePanel({
         title={`Transaction Details (${transactionType})`}
         onClose={() => setTransactionDetailsOpen(false)}
         footer={
-          <Button variant="secondary" onClick={() => setTransactionDetailsOpen(false)}>
+          <Button
+            variant="secondary"
+            onClick={() => setTransactionDetailsOpen(false)}
+          >
             Close
           </Button>
         }
@@ -1172,7 +1180,10 @@ function PayStudentFeePanel({
             </div>
             <div className="sm:col-span-2">
               <div className="text-xs text-gray-600 mb-1">Bank Name</div>
-              <Input value={bankName} onChange={(e) => setBankName(e.target.value)} />
+              <Input
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+              />
             </div>
           </div>
         )}
@@ -1181,11 +1192,17 @@ function PayStudentFeePanel({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <div className="text-xs text-gray-600 mb-1">DD Number</div>
-              <Input value={ddNumber} onChange={(e) => setDdNumber(e.target.value)} />
+              <Input
+                value={ddNumber}
+                onChange={(e) => setDdNumber(e.target.value)}
+              />
             </div>
             <div>
               <div className="text-xs text-gray-600 mb-1">Bank Name</div>
-              <Input value={bankName} onChange={(e) => setBankName(e.target.value)} />
+              <Input
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+              />
             </div>
           </div>
         )}
@@ -1211,10 +1228,13 @@ function PayStudentFeePanel({
                 </div>
               ))}
             </div>
-            <div className="text-xs text-gray-500 mt-2">Total: Rs {cashTotal}</div>
+            <div className="text-xs text-gray-500 mt-2">
+              Total: Rs {cashTotal}
+            </div>
             {cashTotal !== calculatedTotal && (
               <div className="mt-2 text-xs text-amber-700">
-                Cash breakdown total must match the amount (Rs {calculatedTotal}).
+                Cash breakdown total must match the amount (Rs {calculatedTotal}
+                ).
               </div>
             )}
           </div>
@@ -1773,11 +1793,17 @@ function EditFeeModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <div className="text-xs text-gray-600 mb-1">DD Number</div>
-              <Input value={ddNumber} onChange={(e) => setDdNumber(e.target.value)} />
+              <Input
+                value={ddNumber}
+                onChange={(e) => setDdNumber(e.target.value)}
+              />
             </div>
             <div>
               <div className="text-xs text-gray-600 mb-1">Bank Name</div>
-              <Input value={bankName} onChange={(e) => setBankName(e.target.value)} />
+              <Input
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+              />
             </div>
           </div>
         )}
@@ -1803,10 +1829,13 @@ function EditFeeModal({
                 </div>
               ))}
             </div>
-            <div className="text-xs text-gray-500 mt-2">Total: Rs {cashTotal}</div>
+            <div className="text-xs text-gray-500 mt-2">
+              Total: Rs {cashTotal}
+            </div>
             {cashTotal !== calculatedTotal && (
               <div className="mt-2 text-xs text-amber-700">
-                Cash breakdown total must match the amount (Rs {calculatedTotal}).
+                Cash breakdown total must match the amount (Rs {calculatedTotal}
+                ).
               </div>
             )}
           </div>
