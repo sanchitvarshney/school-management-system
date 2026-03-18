@@ -2,18 +2,6 @@
 
 import { AppShell } from "@/components/AppShell";
 import Link from "next/link";
-import {
-  GraduationCap,
-  Users,
-  School,
-  LayoutGrid,
-  CreditCard,
-  BookOpen,
-  IdCard,
-  FileText,
-  ClipboardList,
-  type LucideIcon,
-} from "lucide-react";
 
 const tiles = {
   student: { href: "/students", label: "Student", Icon: "/assets/student.png" },
@@ -29,7 +17,7 @@ const tiles = {
   fees: { href: "/fees", label: "Fees", Icon: "/assets/fees.png", accent: true },
 
   subject: { href: "/subject", label: "Subject", Icon: "/assets/subject.png" },
-  report: { href: "#", label: "Report", Icon: "/assets/report.png", disabled: false },
+  report: { href: "#", label: "Report", Icon: "/assets/exam.png", disabled: false },
   attendance: {
     href: "#",
     label: "Attendance",
