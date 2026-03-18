@@ -6,11 +6,13 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
-import { Table, Td, Th } from "@/components/ui/Table";
 import type { Fee, FeeStatus, SmsDb, Student } from "@/lib/models";
 import { getDb, getSelectedSessionId, setDb } from "@/lib/storage";
 import { uid, numberToWords } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Paper from "@mui/material/Paper";
+import { DataGrid } from "@mui/x-data-grid/DataGrid";
+import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 
 export default function FeesPage() {
   const [db, setDbState] = useState<SmsDb | null>(null);
@@ -52,6 +54,140 @@ export default function FeesPage() {
     });
   }, [fees, query, studentNameById]);
 
+  const printReceipt = useCallback((feeRows: Fee[]) => {
+    setLastPayment(feeRows);
+    setReceiptOpen(true);
+  }, []);
+
+  const del = useCallback(
+    (id: string) => {
+      if (!db) return;
+      const ss = db.sessions[sessionId];
+      const nextDb: SmsDb = {
+        ...db,
+        sessions: {
+          ...db.sessions,
+          [sessionId]: { ...ss, fees: ss.fees.filter((x) => x.id !== id) },
+        },
+      };
+      setDb(nextDb);
+      setDbState(nextDb);
+    },
+    [db, sessionId],
+  );
+
+  const deleteFee = useCallback(
+    (id: string) => {
+      if (
+        !confirm(
+          "Are you sure you want to delete this fee record? This action cannot be undone.",
+        )
+      )
+        return;
+      del(id);
+    },
+    [del],
+  );
+
+  const columns: GridColDef<Fee>[] = useMemo(
+    () => [
+      {
+        field: "studentId",
+        headerName: "Student",
+        flex: 1,
+        minWidth: 200,
+        valueGetter: (_value, row) => studentNameById.get(row.studentId) ?? "-",
+      },
+      { field: "month", headerName: "Month", flex: 0.8, minWidth: 140 },
+      {
+        field: "amount",
+        headerName: "Amount",
+        flex: 0.6,
+        minWidth: 120,
+        valueGetter: (_value, row) => `Rs ${row.amount}`,
+      },
+      {
+        field: "status",
+        headerName: "Status",
+        flex: 0.6,
+        minWidth: 120,
+        renderCell: (params: GridRenderCellParams<Fee, FeeStatus>) => {
+          const v = params.value;
+          return (
+            <span
+              className={`inline-flex rounded-full px-2 py-0.5 text-xs ${
+                v === "Paid"
+                  ? "bg-green-50 text-green-700"
+                  : "bg-yellow-50 text-yellow-800"
+              }`}
+            >
+              {v}
+            </span>
+          );
+        },
+      },
+      {
+        field: "paidDate",
+        headerName: "Paid Date",
+        flex: 0.7,
+        minWidth: 130,
+        valueGetter: (_value, row) => row.paidDate ?? "-",
+      },
+      {
+        field: "transactionType",
+        headerName: "Transaction",
+        flex: 0.7,
+        minWidth: 140,
+        valueGetter: (_value, row) => row.transactionType ?? "-",
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        flex: 1,
+        minWidth: 260,
+        renderCell: (params: GridRenderCellParams<Fee>) => {
+          const f = params.row;
+          return (
+            <div className="flex h-full gap-2 items-center ">
+              <Button
+                variant="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditing(f);
+                  setEditOpen(true);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  printReceipt([f]);
+                }}
+              >
+                Print
+              </Button>
+              <Button
+                variant="danger"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteFee(f.id);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [studentNameById, deleteFee, printReceipt],
+  );
+
   function upsert(item: Fee) {
     if (!db) return;
     const ss = db.sessions[sessionId];
@@ -61,25 +197,6 @@ export default function FeesPage() {
     const nextDb: SmsDb = { ...db, sessions: { ...db.sessions, [sessionId]: { ...ss, fees: next } } };
     setDb(nextDb);
     setDbState(nextDb);
-  }
-
-  function del(id: string) {
-    if (!db) return;
-    const ss = db.sessions[sessionId];
-    const nextDb: SmsDb = { ...db, sessions: { ...db.sessions, [sessionId]: { ...ss, fees: ss.fees.filter((x) => x.id !== id) } } };
-    setDb(nextDb);
-    setDbState(nextDb);
-  }
-
-  function printReceipt(fees: Fee[]) {
-    setLastPayment(fees);
-    setReceiptOpen(true);
-  }
-
-  function deleteFee(id: string) {
-    if (confirm("Are you sure you want to delete this fee record? This action cannot be undone.")) {
-      del(id);
-    }
   }
 
   return (
@@ -103,48 +220,27 @@ export default function FeesPage() {
           </div>
 
           <div className="mt-4">
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Student</Th>
-                  <Th>Month</Th>
-                  <Th>Amount</Th>
-                  <Th>Status</Th>
-                  <Th>Paid Date</Th>
-                  <Th>Transaction</Th>
-                  <Th>Actions</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((f) => (
-                  <tr key={f.id} className="hover:bg-gray-50">
-                    <Td>{studentNameById.get(f.studentId) ?? "-"}</Td>
-                    <Td>{f.month}</Td>
-                    <Td>Rs {f.amount}</Td>
-                    <Td>
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${f.status === "Paid" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-800"}`}>
-                        {f.status}
-                      </span>
-                    </Td>
-                    <Td>{f.paidDate ?? "-"}</Td>
-                    <Td>{f.transactionType ?? "-"}</Td>
-                    <Td>
-                      <div className="flex gap-2">
-                        <Button variant="secondary" onClick={() => { setEditing(f); setEditOpen(true); }}>Edit</Button>
-                        <Button variant="secondary" onClick={() => printReceipt([f])}>Print</Button>
-                        <Button variant="danger" onClick={() => deleteFee(f.id)}>Delete</Button>
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <Td><span className="text-gray-500">No fee records found.</span></Td>
-                    <Td /><Td /><Td /><Td /><Td /><Td />
-                  </tr>
-                )}
-              </tbody>
-            </Table>
+            <Paper elevation={0} sx={{ width: "100%", p: 1, height:"calc(100vh - 210px)" }}>
+              <DataGrid
+                rows={filtered}
+                columns={columns}
+                pageSizeOptions={[5, 10, 25]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 10, page: 0 } },
+                }}
+                disableRowSelectionOnClick
+                sx={{
+                  border: 0,
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: "rgb(249 250 251)",
+                  },
+                  "& .MuiDataGrid-columnHeaderTitle": {
+                    fontWeight: 700,
+                    color: "rgba(0,0,0,0.6)",
+                  },
+                }}
+              />
+            </Paper>
           </div>
         </CardBody>
       </Card>
@@ -326,7 +422,7 @@ function PaymentModal({
           <div>
             <div className="text-xs text-gray-600 mb-1">Unpaid Fees</div>
             <Select
-              multiple
+              
               value={selectedFeeIds}
               onChange={(e) => {
                 const options = Array.from(e.target.selectedOptions, option => option.value);
@@ -617,7 +713,6 @@ function EditFeeModal({
 }) {
   const [studentId, setStudentId] = useState("");
   const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
-  const [amount, setAmount] = useState<number>(0);
   const [transactionType, setTransactionType] = useState<"Cash" | "Cheque" | "DD">("Cash");
   const [chequeNumber, setChequeNumber] = useState("");
   const [chequeExpiryDate, setChequeExpiryDate] = useState("");
@@ -660,7 +755,6 @@ function EditFeeModal({
     if (!open || !editing) return;
     setStudentId(editing.studentId);
     setSelectedFeeIds([]); // For editing, we don't pre-select fees
-    setAmount(editing.amount);
     setTransactionType(editing.transactionType || "Cash");
     setChequeNumber(editing.chequeNumber || "");
     setChequeExpiryDate(editing.chequeExpiryDate || "");
@@ -747,7 +841,7 @@ function EditFeeModal({
           <div>
             <div className="text-xs text-gray-600 mb-1">Unpaid Fees</div>
             <Select
-              multiple
+              
               value={selectedFeeIds}
               onChange={(e) => {
                 const options = Array.from(e.target.selectedOptions, option => option.value);

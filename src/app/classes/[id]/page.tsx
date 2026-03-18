@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Table, Td, Th } from "@/components/ui/Table";
-import type { ClassRoom, Section, SmsDb, Student } from "@/lib/models";
+import type { SmsDb, Student } from "@/lib/models";
 import { getDb, getSelectedSessionId } from "@/lib/storage";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";

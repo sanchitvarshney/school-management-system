@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export function Card({ children }: { children: ReactNode }) {
-  return <div className="rounded-2xl border border-gray-200 bg-white">{children}</div>;
+  return <div className=" border border-gray-200 bg-white">{children}</div>;
 }
 
 export function CardHeader({
@@ -25,6 +25,6 @@ export function CardHeader({
 }
 
 export function CardBody({ children }: { children: ReactNode }) {
-  return <div className="p-4">{children}</div>;
+  return <div className="p-2">{children}</div>;
 }
 

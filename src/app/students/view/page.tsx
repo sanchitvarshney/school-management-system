@@ -5,11 +5,21 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
-import { StudentProfileView } from "@/components/StudentProfileView";
+import { StudentProfileView, type ProfileTabId } from "@/components/StudentProfileView";
 import type { SmsDb } from "@/lib/models";
 import { getDb, getSelectedSessionId } from "@/lib/storage";
+import { ArrowBack } from "@mui/icons-material";
+import { Box, Tab, Tabs } from "@mui/material";
 
+const tabs: { id: ProfileTabId; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "attendance", label: "Attendance" },
+  { id: "documents", label: "Documents" },
+  { id: "examReport", label: "Exam Report" },
+  { id: "addNotes", label: "Add Notes" },
+];
 function StudentViewContent() {
+  const [tab, setTab] = useState<ProfileTabId>("profile");
   const searchParams = useSearchParams();
   const roll = searchParams.get("roll") ?? "";
   const classId = searchParams.get("class") ?? "";
@@ -35,9 +45,7 @@ function StudentViewContent() {
     return (
       s.students.find(
         (st) =>
-          st.rollNo === roll &&
-          st.classId === classId &&
-          st.sectionId === ref
+          st.rollNo === roll && st.classId === classId && st.sectionId === ref,
       ) ?? null
     );
   }, [db, sessionId, roll, classId, ref]);
@@ -54,28 +62,74 @@ function StudentViewContent() {
       s.sections.map((sec) => [
         sec.id,
         `${classNameById.get(sec.classId) ?? ""}-${sec.name}`,
-      ])
+      ]),
     );
   }, [db, sessionId, classNameById]);
 
   return (
     <AppShell>
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="w-full p-4  space-y-4">
+        <div className="flex sticky top-0 z-50 bg-white p-2 justify-between items-center ">
         <div className="flex items-center gap-3">
-          <Link
+            <Link
             href="/students"
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            ← Back to Students
+            <ArrowBack />
           </Link>
+          <h1 className="text-xl font-semibold text-gray-900">
+            {student?.name}
+          </h1>
+        </div>
+          <Box
+            sx={{
+              maxWidth: "100%",
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "grey.200",
+              borderRadius: 2,
+              px: 1,
+            }}
+          >
+            <Tabs
+              value={tab}
+              onChange={(_, next) => setTab(next as ProfileTabId)}
+              variant="scrollable"
+              scrollButtons="auto"
+              allowScrollButtonsMobile
+              aria-label="Student view tabs"
+              sx={{
+                minHeight: 30,
+                "& .MuiTabs-indicator": { backgroundColor: "rgb(79 70 229)" },
+              }}
+            >
+              {tabs.map(({ id, label }) => (
+                <Tab
+                  key={id}
+                  value={id}
+                  label={label}
+                  disableRipple
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 700,
+                    minHeight: 44,
+                    px: 2,
+                    borderRadius: 999,
+                    color: "rgb(55 65 81)",
+                    "&.Mui-selected": { color: "rgb(79 70 229)" },
+                  }}
+                />
+              ))}
+            </Tabs>
+          </Box>
         </div>
         {student ? (
           <>
-            <h1 className="text-xl font-semibold text-gray-900">{student.name}</h1>
             <StudentProfileView
-            student={student}
-            classNameById={classNameById}
-            sectionNameById={sectionNameById}
+              student={student}
+              classNameById={classNameById}
+              sectionNameById={sectionNameById}
+              tab={tab}
             />
           </>
         ) : (
