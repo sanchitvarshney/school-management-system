@@ -8,11 +8,13 @@ export function Table({ children }: { children: ReactNode }) {
   );
 }
 
-export function Th({ children }: { children: ReactNode }) {
-  return <th className="bg-gray-50 px-3 py-2 text-left text-xs font-semibold text-gray-600">{children}</th>;
+export function Th({ children, className }: { children: ReactNode; className?: string }) {
+  const base = "bg-gray-50 px-3 py-2 text-left text-xs font-semibold text-gray-600";
+  return <th className={className ? `${base} ${className}` : base}>{children}</th>;
 }
 
-export function Td({ children }: { children?: ReactNode }) {
-  return <td className="px-3 py-2 text-sm text-gray-800 border-t border-gray-100">{children}</td>;
+export function Td({ children, className }: { children?: ReactNode; className?: string }) {
+  const base = "px-3 py-2 text-sm text-gray-800 border-t border-gray-100";
+  return <td className={className ? `${base} ${className}` : base}>{children}</td>;
 }
 

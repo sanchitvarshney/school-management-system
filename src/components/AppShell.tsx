@@ -4,15 +4,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpen,
   ChevronDown,
-  CreditCard,
-  GraduationCap,
   Home,
-  IdCard,
-  LayoutGrid,
-  School,
-  Users,
   Menu,
   Bell,
   MessageCircleQuestion,

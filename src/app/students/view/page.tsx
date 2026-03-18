@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { StudentProfileView } from "@/components/StudentProfileView";
-import type { SmsDb, Student } from "@/lib/models";
+import type { SmsDb } from "@/lib/models";
 import { getDb, getSelectedSessionId } from "@/lib/storage";
 
-export default function StudentViewPage() {
+function StudentViewContent() {
   const searchParams = useSearchParams();
   const roll = searchParams.get("roll") ?? "";
   const classId = searchParams.get("class") ?? "";
@@ -95,5 +95,19 @@ export default function StudentViewPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+export default function StudentViewPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <div className="max-w-4xl mx-auto p-6 text-gray-500">Loading…</div>
+        </AppShell>
+      }
+    >
+      <StudentViewContent />
+    </Suspense>
   );
 }

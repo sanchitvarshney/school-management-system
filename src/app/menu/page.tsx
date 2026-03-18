@@ -12,9 +12,18 @@ import {
   IdCard,
   FileText,
   ClipboardList,
+  type LucideIcon,
 } from "lucide-react";
 
-const tiles = [
+type MenuTile = {
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  accent?: boolean;
+  disabled?: boolean;
+};
+
+const tiles: MenuTile[] = [
   { href: "/students", label: "Student", Icon: GraduationCap },
   { href: "/teachers", label: "Teacher", Icon: Users },
   { href: "/classes", label: "Class", Icon: School },
@@ -24,7 +33,7 @@ const tiles = [
   { href: "/id", label: "ID Generate", Icon: IdCard },
   { href: "#", label: "Report", Icon: FileText, disabled: true },
   { href: "#", label: "Attendance", Icon: ClipboardList, disabled: true },
-] as const;
+];
 
 export default function MenuPage() {
   return (

@@ -14,14 +14,18 @@ export function SlideOver({
   onClose: () => void;
   closeOnOverlayClick?: boolean;
 }) {
-  if (!open) return null;
-
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
+    if (!open) {
+      setEntered(false);
+      return;
+    }
     const t = setTimeout(() => setEntered(true), 10);
     return () => clearTimeout(t);
-  }, []);
+  }, [open]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50">

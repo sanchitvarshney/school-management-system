@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 
 import { Select } from "@/components/ui/Select";
-import { Table, Td, Th } from "@/components/ui/Table";
+import { Td, Th } from "@/components/ui/Table";
 import type { Student } from "@/lib/models";
 import { uid } from "@/lib/utils";
 
