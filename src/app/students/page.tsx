@@ -17,15 +17,13 @@ import { uid } from "@/lib/utils";
 export default function StudentsPage() {
   const [db, setDbState] = useState<SmsDb | null>(null);
   const [sessionId, setSessionId] = useState<string>("2025-2026");
-  // search-first UI (like screenshot)
+  // top filters
   const [searchClassId, setSearchClassId] = useState<string>("");
-  const [searchSectionId, setSearchSectionId] = useState<string>("");
-  const [admissionId, setAdmissionId] = useState<string>("");
-  const [rollOrName, setRollOrName] = useState<string>("");
   const [showResults, setShowResults] = useState<boolean>(false);
   const [results, setResults] = useState<Student[]>([]);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -43,55 +41,24 @@ export default function StudentsPage() {
   const classes = s?.classes ?? [];
   const sections = s?.sections ?? [];
 
-  const availableSections = useMemo(() => {
-    if (!searchClassId) return sections;
-    return sections.filter((sec) => sec.classId === searchClassId);
-  }, [sections, searchClassId]);
-
-  useEffect(() => {
-    if (!searchClassId) {
-      setSearchSectionId("");
-      return;
-    }
-    if (searchSectionId && availableSections.some((x) => x.id === searchSectionId)) return;
-    setSearchSectionId(availableSections[0]?.id ?? "");
-  }, [searchClassId, availableSections, searchSectionId]);
-
   function clearSearch() {
     setSearchClassId("");
-    setSearchSectionId("");
-    setAdmissionId("");
-    setRollOrName("");
     setResults([]);
+    setSelectedStudentId(null);
     setShowResults(false);
   }
 
   function fetchStudents() {
     const cls = searchClassId.trim();
-    const sec = searchSectionId.trim();
-    const adm = admissionId.trim();
-    const rn = rollOrName.trim().toLowerCase();
 
-    let out: Student[] = [];
+    let out: Student[] = students;
 
-    // Priority order (matches screenshot "OR"):
-    // 1) Class + Section
-    // 2) Admission ID
-    // 3) Roll No / Name
-    if (cls && sec) {
-      out = students.filter((st) => st.classId === cls && st.sectionId === sec);
-    } else if (adm) {
-      // admission id is mapped to student.id in this demo
-      out = students.filter((st) => st.id.toLowerCase() === adm.toLowerCase());
-    } else if (rn) {
-      out = students.filter(
-        (st) => st.rollNo.toLowerCase().includes(rn) || st.name.toLowerCase().includes(rn)
-      );
-    } else {
-      out = students;
+    if (cls) {
+      out = out.filter((st) => st.classId === cls);
     }
 
     setResults(out);
+    setSelectedStudentId(out[0]?.id ?? null);
     setShowResults(true);
   }
 
@@ -121,171 +88,240 @@ export default function StudentsPage() {
   }
 
   const classNameById = useMemo(() => new Map(classes.map((c) => [c.id, c.name])), [classes]);
-  const sectionNameById = useMemo(
-    () => new Map(sections.map((sec) => [sec.id, `${classNameById.get(sec.classId) ?? ""}-${sec.name}`])),
-    [sections, classNameById]
+  const sectionNameById = useMemo(() => {
+    return new Map(
+      sections.map((sec) => [sec.id, `${classNameById.get(sec.classId) ?? ""}-${sec.name}`])
+    );
+  }, [sections, classNameById]);
+
+  const selectedStudent = useMemo(
+    () => results.find((st) => st.id === selectedStudentId) ?? results[0] ?? null,
+    [results, selectedStudentId]
   );
 
   return (
     <AppShell>
-      {!showResults ? (
-        <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto space-y-4">
           <Card>
-            <CardHeader title="Students" subtitle="Search students" />
+            <CardHeader title="Attendance & Students" subtitle="Select grade, class, date and student name" />
             <CardBody>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-24 text-sm font-semibold text-gray-800">Class</div>
-                  <div className="flex-1">
-                    <Select value={searchClassId} onChange={(e) => setSearchClassId(e.target.value)}>
-                      <option value="">Select</option>
-                      {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </Select>
+              <div className="space-y-4">
+                {/* Top blue filter bar (grade / class) */}
+                <div className="rounded-2xl bg-[#01325B] text-white px-4 py-4 flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide opacity-90">
+                        Select Grade
+                      </span>
+                      <select
+                        className="h-9 min-w-[160px] rounded-lg border-0 bg-white px-3 text-sm text-gray-900"
+                        value={searchClassId}
+                        onChange={(e) => setSearchClassId(e.target.value)}
+                      >
+                        <option value="">All Grades</option>
+                        {classes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide opacity-90">
+                        Select Class
+                      </span>
+                      {classes.map((c) => {
+                        const active = c.id === searchClassId;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setSearchClassId(active ? "" : c.id)}
+                            className={[
+                              "h-8 rounded-full px-3 text-xs font-semibold border transition-colors",
+                              active
+                                ? "bg-white text-[#01325B] border-white"
+                                : "bg-transparent text-white border-white/30 hover:bg-white/10",
+                            ].join(" ")}
+                          >
+                            {c.name}
+                          </button>
+                        );
+                      })}
+                      {classes.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchClassId("");
+                          }}
+                          className="ml-1 h-8 rounded-full px-3 text-xs font-semibold border border-white/40 bg-white/10 hover:bg-white/20"
+                        >
+                          Select All
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-24 text-sm font-semibold text-gray-800">Section</div>
-                  <div className="flex-1">
-                    <Select
-                      value={searchSectionId}
-                      onChange={(e) => setSearchSectionId(e.target.value)}
-                      disabled={!searchClassId}
+
+                  <div className="flex flex-wrap items-center justify-end gap-3">
+                    <Button
+                      variant="secondary"
+                      className="h-9 rounded-lg bg-white/10 text-white border border-white/30 hover:bg-white/20 text-xs"
+                      onClick={clearSearch}
                     >
-                      <option value="">Select</option>
-                      {availableSections.map((sec) => (
-                        <option key={sec.id} value={sec.id}>
-                          {sec.name}
-                        </option>
-                      ))}
-                    </Select>
+                      Clear
+                    </Button>
+                    <Button className="h-9 rounded-lg px-4 text-sm" onClick={fetchStudents}>
+                      Fetch
+                    </Button>
                   </div>
                 </div>
               </div>
-
-              <div className="my-6 text-center text-lg font-extrabold text-gray-900">OR</div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-40 text-sm font-semibold text-gray-800">Admission ID</div>
-                <div className="flex-1">
-                  <Input
-                    value={admissionId}
-                    onChange={(e) => setAdmissionId(e.target.value)}
-                    placeholder="Enter admission id"
-                  />
-                </div>
-              </div>
-
-              <div className="my-6 text-center text-lg font-extrabold text-gray-900">OR</div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-40 text-sm font-semibold text-gray-800">Roll No. / Name</div>
-                <div className="flex-1">
-                  <Input
-                    value={rollOrName}
-                    onChange={(e) => setRollOrName(e.target.value)}
-                    placeholder="Enter roll no or name"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-8 flex items-center justify-center gap-8">
-                <button type="button" className="text-sm text-blue-600 underline" onClick={clearSearch}>
-                  Clear
-                </button>
-                <Button onClick={fetchStudents}>Fetch</Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      ) : (
-        <Card>
-          <CardHeader
-            title="Students"
-            subtitle={`Results: ${results.length}`}
-            right={
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setShowResults(false)}>
-                  New Search
-                </Button>
-                <Button
-                  onClick={() => {
-                    setEditing(null);
-                    setRegisterOpen(true);
-                  }}
-                >
-                  Register Student
-                </Button>
-              </div>
-            }
-          />
-          <CardBody>
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Name</Th>
-                  <Th>Roll No</Th>
-                  <Th>Class</Th>
-                  <Th>Section</Th>
-                  <Th>Guardian Phone</Th>
-                  <Th>Actions</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((st) => (
-                  <tr key={st.id} className="hover:bg-gray-50">
-                    <Td>
-                      <Link className="text-indigo-700 hover:underline font-semibold" href={`/students/${st.id}`}>
-                        {st.name}
-                      </Link>
-                    </Td>
-                    <Td>{st.rollNo}</Td>
-                    <Td>{classNameById.get(st.classId) ?? "-"}</Td>
-                    <Td>{sectionNameById.get(st.sectionId) ?? "-"}</Td>
-                    <Td>{st.guardianPhone}</Td>
-                    <Td>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setEditing(st);
-                            setRegisterOpen(true);
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="danger"
-                          onClick={() => {
-                            if (confirm("Delete this student?")) deleteStudent(st.id);
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
-                {results.length === 0 && (
-                  <tr>
-                    <Td>
-                      <span className="text-gray-500">No students found.</span>
-                    </Td>
-                    <Td />
-                    <Td />
-                    <Td />
-                    <Td />
-                    <Td />
-                  </tr>
-                )}
-              </tbody>
-            </Table>
           </CardBody>
         </Card>
-      )}
+
+        {showResults && (
+          <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-4">
+          <Card>
+            <CardHeader
+              title="Grade: 8A"
+              subtitle={`Students: ${results.length}`}
+              right={
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-600">Enter student name</span>
+                  <Input
+                    placeholder="Search..."
+                    className="h-8 w-48 rounded-lg text-sm"
+                    onChange={(e) => {
+                      const value = e.target.value.toLowerCase();
+                      const filtered = students.filter(
+                        (st) =>
+                          (!searchClassId || st.classId === searchClassId) &&
+                          st.name.toLowerCase().includes(value)
+                      );
+                      setResults(filtered);
+                      setSelectedStudentId(filtered[0]?.id ?? null);
+                    }}
+                  />
+                </div>
+              }
+            />
+            <CardBody>
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Student Name</Th>
+                    <Th>Lecture Records</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((st) => {
+                    const active = selectedStudent?.id === st.id;
+                    const lectures = [1, 2, 3, 4, 5, 6, 7];
+                    return (
+                      <tr
+                        key={st.id}
+                        className={[
+                          "cursor-pointer",
+                          active ? "bg-indigo-50" : "hover:bg-gray-50",
+                        ].join(" ")}
+                        onClick={() => setSelectedStudentId(st.id)}
+                      >
+                        <Td>
+                          <span className="text-indigo-700 font-semibold">{st.name}</span>
+                        </Td>
+                        <Td>
+                          <div className="flex gap-1">
+                            {lectures.map((n) => {
+                              const mod = (n + st.rollNo.length) % 3;
+                              const color =
+                                mod === 0 ? "bg-green-500" : mod === 1 ? "bg-yellow-400" : "bg-red-500";
+                              return (
+                                <span
+                                  key={n}
+                                  className={[
+                                    "h-6 w-6 rounded-full text-[10px] flex items-center justify-center font-semibold text-white",
+                                    color,
+                                  ].join(" ")}
+                                >
+                                  {n}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </Td>
+                      </tr>
+                    );
+                  })}
+                  {results.length === 0 && (
+                    <tr>
+                      <Td>
+                        <span className="text-gray-500">No students found.</span>
+                      </Td>
+                      <Td />
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title={selectedStudent ? selectedStudent.name : "Select a student"}
+              subtitle={selectedStudent ? "Absent Report" : "Click a row to view details"}
+              right={null}
+            />
+            <CardBody>
+              {selectedStudent ? (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+                    Roll No. {selectedStudent.rollNo} • Class{" "}
+                    {classNameById.get(selectedStudent.classId) ?? "-"} • Section{" "}
+                    {sectionNameById.get(selectedStudent.sectionId) ?? "-"}
+                  </div>
+
+                  <div className="grid grid-cols-[1.5fr_1fr_1fr] text-xs font-semibold text-gray-600 border-b border-gray-200 pb-1">
+                    <div>Lecture</div>
+                    <div>Reason</div>
+                    <div className="text-right">Status</div>
+                  </div>
+
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <div
+                      key={n}
+                      className="grid grid-cols-[1.5fr_1fr_1fr] items-center text-sm py-1 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="text-gray-800">{n} Time</div>
+                      <div>
+                        <select className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-800">
+                          <option>Present</option>
+                          <option>Absent</option>
+                          <option>Late</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center justify-end gap-1 text-green-600 text-xs">
+                        <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+                        Present
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="pt-3 flex justify-end gap-2">
+                    <Button variant="secondary" className="px-6">
+                      Cancel
+                    </Button>
+                    <Button className="px-6">Done</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600">Select a student from the list.</div>
+              )}
+            </CardBody>
+          </Card>
+          </div>
+        )}
+      </div>
 
       <StudentRegistrationDrawer
         open={registerOpen}
