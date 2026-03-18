@@ -76,7 +76,7 @@ export default function HomePage() {
             <p className="mt-1 text-sm text-gray-600">
               Overview for session <span className="font-medium text-gray-900">{sessionId}</span>
             </p>
-          </div>
+        </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -85,7 +85,7 @@ export default function HomePage() {
           <Kpi title="Classes" value={stats.classes} />
           <Kpi title="Fees Collected" value={`Rs ${stats.feesCollected}`} />
           <Kpi title="Fees Due" value={`Rs ${stats.feesDue}`} />
-        </div>
+              </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -94,15 +94,15 @@ export default function HomePage() {
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>Collected</span>
                 <span>{feeProgress}%</span>
-              </div>
+                  </div>
               <div className="mt-2 h-2 rounded-full bg-gray-100 overflow-hidden">
                 <div className="h-full bg-indigo-600" style={{ width: `${feeProgress}%` }} />
-              </div>
+                </div>
               <div className="mt-3 text-xs text-gray-500">
                 Rs {stats.feesCollected} collected • Rs {stats.feesDue} due
-              </div>
-            </div>
-          </div>
+                        </div>
+                      </div>
+                  </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-4 lg:col-span-2">
             <div className="text-sm font-semibold text-gray-900">Monthly fees (paid)</div>
@@ -117,9 +117,9 @@ export default function HomePage() {
                   <Bar dataKey="amount" name="Paid" fill="#4f46e5" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
+                      </div>
+                  </div>
+                </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-4 lg:col-span-1">
@@ -131,26 +131,26 @@ export default function HomePage() {
                   <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} fill="#4f46e5" />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
           </div>
+            </div>
           <div className="rounded-2xl border border-gray-200 bg-white p-4 lg:col-span-2">
             <div className="text-sm font-semibold text-gray-900">Quick notes</div>
             <div className="mt-2 text-sm text-gray-600">
               This is a demo school management system. Next we’ll fill Teachers, Students, Fees, Classes, Sections, Exams, and ID Generation pages with full CRUD.
-            </div>
           </div>
         </div>
+    </div>
       </div>
     </AppShell>
   );
 }
 
 function Kpi({ title, value }: { title: string; value: string | number }) {
-  return (
+      return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4">
       <div className="text-xs text-gray-500">{title}</div>
       <div className="mt-2 text-lg font-semibold text-gray-900">{value}</div>
-    </div>
-  );
+        </div>
+      );
 }
 

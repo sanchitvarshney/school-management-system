@@ -181,7 +181,7 @@ export default function StudentsPage() {
         </Card>
 
         {showResults && (
-          <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-4">
+          <div className="grid grid-cols-1 gap-4">
           <Card>
             <CardHeader
               title="Grade: 8A"
@@ -211,7 +211,7 @@ export default function StudentsPage() {
                 <thead>
                   <tr>
                     <Th>Student Name</Th>
-                    <Th>Lecture Records</Th>
+                    <Th>Father / Roll No.</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -228,26 +228,18 @@ export default function StudentsPage() {
                         onClick={() => setSelectedStudentId(st.id)}
                       >
                         <Td>
-                          <span className="text-indigo-700 font-semibold">{st.name}</span>
+                          <Link
+                            href={`/students/view?roll=${encodeURIComponent(st.rollNo)}&class=${encodeURIComponent(st.classId)}&ref=${encodeURIComponent(st.sectionId)}`}
+                            className="text-indigo-700 font-semibold hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {st.name}
+                          </Link>
                         </Td>
                         <Td>
-                          <div className="flex gap-1">
-                            {lectures.map((n) => {
-                              const mod = (n + st.rollNo.length) % 3;
-                              const color =
-                                mod === 0 ? "bg-green-500" : mod === 1 ? "bg-yellow-400" : "bg-red-500";
-                              return (
-                                <span
-                                  key={n}
-                                  className={[
-                                    "h-6 w-6 rounded-full text-[10px] flex items-center justify-center font-semibold text-white",
-                                    color,
-                                  ].join(" ")}
-                                >
-                                  {n}
-                                </span>
-                              );
-                            })}
+                          <div className="text-sm text-gray-800">
+                            <div>{st.fatherName ?? "Father name not set"}</div>
+                            <div className="text-xs text-gray-500">Roll No. {st.rollNo}</div>
                           </div>
                         </Td>
                       </tr>
@@ -266,59 +258,7 @@ export default function StudentsPage() {
             </CardBody>
           </Card>
 
-          <Card>
-            <CardHeader
-              title={selectedStudent ? selectedStudent.name : "Select a student"}
-              subtitle={selectedStudent ? "Absent Report" : "Click a row to view details"}
-              right={null}
-            />
-            <CardBody>
-              {selectedStudent ? (
-                <div className="space-y-3">
-                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
-                    Roll No. {selectedStudent.rollNo} • Class{" "}
-                    {classNameById.get(selectedStudent.classId) ?? "-"} • Section{" "}
-                    {sectionNameById.get(selectedStudent.sectionId) ?? "-"}
-                  </div>
-
-                  <div className="grid grid-cols-[1.5fr_1fr_1fr] text-xs font-semibold text-gray-600 border-b border-gray-200 pb-1">
-                    <div>Lecture</div>
-                    <div>Reason</div>
-                    <div className="text-right">Status</div>
-                  </div>
-
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                    <div
-                      key={n}
-                      className="grid grid-cols-[1.5fr_1fr_1fr] items-center text-sm py-1 border-b border-gray-100 last:border-b-0"
-                    >
-                      <div className="text-gray-800">{n} Time</div>
-                      <div>
-                        <select className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-800">
-                          <option>Present</option>
-                          <option>Absent</option>
-                          <option>Late</option>
-                        </select>
-                      </div>
-                      <div className="flex items-center justify-end gap-1 text-green-600 text-xs">
-                        <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-                        Present
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="pt-3 flex justify-end gap-2">
-                    <Button variant="secondary" className="px-6">
-                      Cancel
-                    </Button>
-                    <Button className="px-6">Done</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-gray-600">Select a student from the list.</div>
-              )}
-            </CardBody>
-          </Card>
+          {/* Right side reserved for future attendance details; hidden on this screen */}
           </div>
         )}
       </div>
@@ -338,6 +278,7 @@ export default function StudentsPage() {
           setRegisterOpen(false);
         }}
       />
+
     </AppShell>
   );
 }
@@ -357,6 +298,15 @@ function SectionFieldset({ title, children }: { title: string; children: ReactNo
       <legend className="ml-4 px-3 text-sm font-semibold text-gray-900">{title}</legend>
       <div className="p-4 sm:p-5 space-y-4">{children}</div>
     </fieldset>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-2 py-2 border-b border-gray-100 last:border-b-0">
+      <div className="text-sm font-semibold text-gray-700">{label}</div>
+      <div className="text-sm text-gray-800">{value && value.trim() ? value : "-"}</div>
+    </div>
   );
 }
 
