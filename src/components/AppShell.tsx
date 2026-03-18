@@ -15,11 +15,7 @@ import {
   UserPlus,
 } from "lucide-react";
 
-export function AppShell({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const sessions = ["2024-2025", "2025-2026", "2026-2027"] as const;
   const [sessionValue, setSessionValue] = useState<string>(sessions[1]);
@@ -46,14 +42,10 @@ export function AppShell({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [notificationsOpen]);
 
-  const nav = useMemo(
-    () =>
-      [
-        { href: "/", label: "Home", icon: Home },
-        { href: "/menu", label: "Menu", icon: Menu },
-      ] as const,
-    []
-  );
+  const nav: any = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/menu", label: "Menu", icon: Menu },
+  ];
 
   function setSession(next: string) {
     try {
@@ -65,13 +57,10 @@ export function AppShell({
 
   return (
     <div className="h-screen w-full grid grid-cols-[72px_1fr] grid-rows-[56px_1fr]">
-      {/* Old-style slim icon rail */}
       <aside className="row-span-2 bg-white border-r border-gray-200 flex flex-col items-center gap-6 py-4">
         <div className="h-8 w-8 rounded-full bg-indigo-600" title="School MS" />
-        <div className="h-8 w-8 rounded-lg border" title="Logo" />
-
-        <nav className="flex flex-col items-center gap-3">
-          {nav.map((item) => {
+        <nav className="flex flex-col my-auto items-center gap-3 ">
+          {nav.map((item: any) => {
             const active = pathname === item.href;
             const Icon = item.icon;
             return (
@@ -91,22 +80,18 @@ export function AppShell({
             );
           })}
         </nav>
-
-        <div className="relative">
-          <button
-            type="button"
-            className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors"
-            onClick={() => setNotificationsOpen(true)}
-            aria-label="Open notifications"
-            title="Notifications"
-          >
-            <Bell className="h-6 w-6 text-gray-700" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
-              2
-            </span>
-          </button>
-        </div>
-        <MessageCircleQuestion className="h-6 w-6 mt-auto text-gray-700" />
+        <button
+          type="button"
+          className="h-10 w-10 rounded-xl flex items-center relative justify-center hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors mt-auto"
+          onClick={() => setNotificationsOpen(true)}
+          aria-label="Open notifications"
+          title="Notifications"
+        >
+          <Bell className="h-6 w-6 text-gray-700" />
+          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+            2
+          </span>
+        </button>
         <Settings className="h-6 w-6 text-gray-700" />
       </aside>
 
@@ -172,7 +157,9 @@ export function AppShell({
                 >
                   <X className="h-5 w-5 text-gray-800" />
                 </button>
-                <div className="text-base font-semibold text-gray-900">Messages</div>
+                <div className="text-base font-semibold text-gray-900">
+                  Messages
+                </div>
               </div>
               <button
                 type="button"
@@ -185,7 +172,9 @@ export function AppShell({
             </div>
 
             <div className="px-4 pb-3">
-              <div className="text-xs font-semibold text-gray-700">Messages</div>
+              <div className="text-xs font-semibold text-gray-700">
+                Messages
+              </div>
             </div>
 
             <div className="px-4 pb-4 overflow-auto h-[calc(100%-64px-12px-32px)] space-y-3">
@@ -208,8 +197,12 @@ export function AppShell({
                   <UserPlus className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-gray-900">Invite your friends</div>
-                  <div className="text-sm text-gray-600">Connect to start chatting</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    Invite your friends
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Connect to start chatting
+                  </div>
                 </div>
               </div>
             </div>
@@ -237,7 +230,9 @@ function NotificationItem({
     <div
       className={[
         "flex items-center justify-between gap-3 rounded-2xl px-3 py-3 border",
-        active ? "border-indigo-300 bg-indigo-50/40" : "border-transparent hover:bg-gray-50",
+        active
+          ? "border-indigo-300 bg-indigo-50/40"
+          : "border-transparent hover:bg-gray-50",
       ].join(" ")}
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -245,7 +240,9 @@ function NotificationItem({
           {avatarText}
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
+          <div className="text-sm font-semibold text-gray-900 truncate">
+            {title}
+          </div>
           <div className="text-sm text-gray-600 truncate">{subtitle}</div>
         </div>
       </div>
@@ -263,4 +260,3 @@ function NotificationItem({
     </div>
   );
 }
-
