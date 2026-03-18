@@ -8,7 +8,6 @@ import {
   Home,
   Menu,
   Bell,
-  MessageCircleQuestion,
   Settings,
   X,
   Pencil,
@@ -42,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [notificationsOpen]);
 
-  const nav: any = [
+  const nav = [
     { href: "/", label: "Home", icon: Home },
     { href: "/menu", label: "Menu", icon: Menu },
   ];
@@ -60,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="row-span-2 bg-white border-r border-gray-200 flex flex-col items-center gap-6 py-4">
         <div className="h-8 w-8 rounded-full bg-indigo-600" title="School MS" />
         <nav className="flex flex-col my-auto items-center gap-3 ">
-          {nav.map((item: any) => {
+          {nav.map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
             return (
