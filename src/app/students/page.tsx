@@ -11,6 +11,7 @@ import Paper from "@mui/material/Paper";
 import FormControl from "@mui/material/FormControl";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Checkbox from "@mui/material/Checkbox";
 import type { ClassRoom, Section, SmsDb, Student } from "@/lib/models";
 import { getDb, getSelectedSessionId, setDb } from "@/lib/storage";
 import { uid } from "@/lib/utils";
@@ -293,11 +294,14 @@ export default function StudentsPage() {
                                 i > 0 ? "border-l" : "",
                               ].join(" ")}
                             >
-                              <input
-                                type="checkbox"
+                              <Checkbox
+                                size="small"
                                 checked={checked}
                                 onChange={() => toggleSection(sec.id)}
-                                className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                sx={{
+                                  p: 0,
+                                  "& .MuiSvgIcon-root": { fontSize: 18 },
+                                }}
                               />
                               <span className="font-medium">{label}</span>
                             </label>
@@ -314,14 +318,7 @@ export default function StudentsPage() {
                     >
                       ›
                     </button>
-                    <button
-                      type="button"
-                      onClick={selectAllSectionsForGrade}
-                      disabled={!filterGradeId || sectionsForGrade.length === 0}
-                      className="flex h-10 shrink-0 items-center border-l border-gray-200 bg-[#00B4D8] px-3 text-[10px] font-bold uppercase leading-tight tracking-wide text-white hover:bg-[#0096c7] disabled:opacity-40 sm:px-4 sm:text-xs"
-                    >
-                      Select All
-                    </button>
+                 
                   </div>
                 </div>
               </div>

@@ -5,10 +5,17 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import type { Fee, FeeStatus, SmsDb, Student } from "@/lib/models";
+import type {
+  ClassRoom,
+  Fee,
+  FeeStatus,
+  Section,
+  SmsDb,
+  Student,
+} from "@/lib/models";
 import { getDb, getSelectedSessionId, setDb } from "@/lib/storage";
 import { uid, numberToWords } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Paper from "@mui/material/Paper";
 import { DataGrid } from "@mui/x-data-grid/DataGrid";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
@@ -17,7 +24,9 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import MuiSelect, { type SelectChangeEvent } from "@mui/material/Select";
-import { Box, Tab, Tabs } from "@mui/material";
+import { Box, Divider, Tab, Tabs, Typography } from "@mui/material";
+import Checkbox from "@mui/material/Checkbox";
+import TextField from "@mui/material/TextField";
 import {
   Bar,
   BarChart,
@@ -35,6 +44,10 @@ export default function FeesPage() {
   const [db, setDbState] = useState<SmsDb | null>(null);
   const [sessionId, setSessionId] = useState<string>("2025-2026");
   const [tab, setTab] = useState<"pay" | "filters" | "dashboard">("dashboard");
+  // top filters (class/section -> used to filter students dropdowns)
+  const [filterGradeId, setFilterGradeId] = useState<string>("");
+  const [filterSectionIds, setFilterSectionIds] = useState<string[]>([]);
+  const classScrollRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | FeeStatus>("");
   const [studentFilter, setStudentFilter] = useState<string>("");
@@ -59,6 +72,14 @@ export default function FeesPage() {
     () => db?.sessions?.[sessionId]?.students ?? [],
     [db, sessionId],
   );
+  const classes = useMemo(
+    () => db?.sessions?.[sessionId]?.classes ?? [],
+    [db, sessionId],
+  );
+  const sections = useMemo(
+    () => db?.sessions?.[sessionId]?.sections ?? [],
+    [db, sessionId],
+  );
   const fees = useMemo(
     () => db?.sessions?.[sessionId]?.fees ?? [],
     [db, sessionId],
@@ -67,6 +88,55 @@ export default function FeesPage() {
     () => new Map(students.map((st) => [st.id, st.name])),
     [students],
   );
+
+  const classNameById = useMemo(
+    () => new Map(classes.map((c) => [c.id, c.name])),
+    [classes],
+  );
+  const sectionNameById = useMemo(() => {
+    return new Map(
+      sections.map((sec) => [
+        sec.id,
+        `${classNameById.get(sec.classId) ?? ""}-${sec.name}`,
+      ]),
+    );
+  }, [sections, classNameById]);
+  const sectionsForGrade = useMemo(
+    () =>
+      sections.filter((sec) =>
+        filterGradeId ? sec.classId === filterGradeId : false,
+      ),
+    [sections, filterGradeId],
+  );
+
+  const filteredStudents = useMemo(() => {
+    const grade = filterGradeId.trim();
+    let out: Student[] = students;
+    if (grade) out = out.filter((st) => st.classId === grade);
+    if (filterSectionIds.length > 0) {
+      const set = new Set(filterSectionIds);
+      out = out.filter((st) => set.has(st.sectionId));
+    }
+    return out;
+  }, [students, filterGradeId, filterSectionIds]);
+
+  useEffect(() => {
+    if (!studentFilter) return;
+    if (filteredStudents.some((s) => s.id === studentFilter)) return;
+    setStudentFilter("");
+  }, [filteredStudents, studentFilter]);
+
+  function toggleSection(id: string) {
+    setFilterSectionIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  function scrollClassRow(dir: -1 | 1) {
+    const el = classScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 220, behavior: "smooth" });
+  }
 
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
@@ -308,15 +378,15 @@ export default function FeesPage() {
     <AppShell>
       <Card>
         <CardBody>
-          <div className="flex items-center justify-between gap-3 p-2">
+          <div className="flex  items-center justify-between gap-3 p-2">
             <Box
               sx={{
                 maxWidth: "100%",
                 bgcolor: "background.paper",
                 border: "1px solid",
                 borderColor: "grey.200",
-                borderRadius: 2,
-                px: 1,
+                borderRadius: 4,
+                p: 1,
               }}
             >
               <Tabs
@@ -328,7 +398,10 @@ export default function FeesPage() {
                 aria-label="Fees tabs"
                 sx={{
                   minHeight: 30,
-                  "& .MuiTabs-indicator": { backgroundColor: "rgb(79 70 229)" },
+                  "& .MuiTabs-indicator": {
+                    backgroundColor: "rgb(79 70 229)",
+                    display: "none",
+                  },
                 }}
               >
                 <Tab
@@ -342,7 +415,11 @@ export default function FeesPage() {
                     px: 2,
                     borderRadius: 999,
                     color: "rgb(55 65 81)",
-                    "&.Mui-selected": { color: "rgb(79 70 229)" },
+                    "&.Mui-selected": {
+                      color: "#ffffff",
+                      border: "none",
+                      backgroundColor: "rgb(79 70 229)",
+                    },
                   }}
                 />
                 <Tab
@@ -356,7 +433,11 @@ export default function FeesPage() {
                     px: 2,
                     borderRadius: 999,
                     color: "rgb(55 65 81)",
-                    "&.Mui-selected": { color: "rgb(79 70 229)" },
+                    "&.Mui-selected": {
+                      color: "#ffffff",
+                      border: "none",
+                      backgroundColor: "rgb(79 70 229)",
+                    },
                   }}
                 />
                 <Tab
@@ -370,7 +451,11 @@ export default function FeesPage() {
                     px: 2,
                     borderRadius: 999,
                     color: "rgb(55 65 81)",
-                    "&.Mui-selected": { color: "rgb(79 70 229)" },
+                    "&.Mui-selected": {
+                      color: "#ffffff",
+                      border: "none",
+                      backgroundColor: "rgb(79 70 229)",
+                    },
                   }}
                 />
               </Tabs>
@@ -378,18 +463,139 @@ export default function FeesPage() {
           </div>
 
           {tab === "pay" && (
-            <div className="mt-4">
-              <PayStudentFeePanel
-                students={students}
-                fees={fees}
-                onPay={(payments) => {
-                  payments.forEach(upsert);
-                  setLastPayment(payments);
-                  setReceiptOpen(true);
-                  setTab("dashboard");
-                }}
-              />
-            </div>
+            <>
+              {" "}
+              <div className="bg-[#002147] text-white px-4 py-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <div className="flex h-10 shrink-0 items-center">
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <MuiSelect
+                      value={filterGradeId}
+                      displayEmpty
+                      onChange={(e) => {
+                        setFilterGradeId(String(e.target.value));
+                        setFilterSectionIds([]);
+                      }}
+                      sx={{
+                        height: 40,
+                        borderRadius: 2,
+                        backgroundColor: "#fff",
+                        ".MuiSelect-select": {
+                          py: 0.5,
+                          fontSize: 14,
+                          fontWeight: 600,
+                        },
+                      }}
+                      renderValue={(value) => {
+                        const v = String(value ?? "");
+                        if (!v) return "Select Grade";
+                        return (
+                          classes.find((c) => c.id === v)?.name ??
+                          "Select Grade"
+                        );
+                      }}
+                    >
+                      {classes.map((c: ClassRoom) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.name}
+                        </MenuItem>
+                      ))}
+                    </MuiSelect>
+                  </FormControl>
+                </div>
+
+                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                  <span className="shrink-0 text-sm font-bold leading-none text-white">
+                    Select Class
+                  </span>
+                  <div className="flex h-10 min-w-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button
+                      type="button"
+                      aria-label="Scroll classes left"
+                      onClick={() => scrollClassRow(-1)}
+                      disabled={!filterGradeId || sectionsForGrade.length === 0}
+                      className="flex h-10 w-8 shrink-0 items-center justify-center border-r border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
+                    >
+                      ‹
+                    </button>
+                    <div
+                      ref={classScrollRef}
+                      tabIndex={-1}
+                      className="class-strip-scroll flex h-10 min-h-10 min-w-0 flex-1 touch-pan-y items-center overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                      onWheel={(e) => {
+                        if (e.shiftKey) e.preventDefault();
+                        if (Math.abs(e.deltaX) > Math.abs(e.deltaY))
+                          e.preventDefault();
+                      }}
+                    >
+                      {filterGradeId === "" ? (
+                        <span className="flex h-10 items-center px-3 text-sm text-gray-400">
+                          Select a grade to see classes
+                        </span>
+                      ) : sectionsForGrade.length === 0 ? (
+                        <span className="flex h-10 items-center px-3 text-sm text-gray-400">
+                          No sections for this grade
+                        </span>
+                      ) : (
+                        sectionsForGrade.map((sec: Section, i: number) => {
+                          const cn = classNameById.get(sec.classId) ?? "";
+                          const label =
+                            cn && sec.name
+                              ? `${cn.replace(/\s/g, "")}${sec.name}`
+                              : (sectionNameById.get(sec.id) ?? sec.name);
+                          const checked = filterSectionIds.includes(sec.id);
+                          return (
+                            <label
+                              key={sec.id}
+                              className={[
+                                "flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-gray-200 px-3 text-sm leading-none",
+                                checked ? "text-gray-800" : "text-gray-400",
+                                i > 0 ? "border-l" : "",
+                              ].join(" ")}
+                            >
+                              <Checkbox
+                                size="small"
+                                checked={checked}
+                                onChange={() => toggleSection(sec.id)}
+                                sx={{
+                                  p: 0,
+                                  "& .MuiSvgIcon-root": { fontSize: 18 },
+                                }}
+                              />
+                              <span className="font-medium">{label}</span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Scroll classes right"
+                      onClick={() => scrollClassRow(1)}
+                      disabled={!filterGradeId || sectionsForGrade.length === 0}
+                      className="flex h-10 w-8 shrink-0 items-center justify-center border-l border-gray-200 bg-gray-200 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-300 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-700"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
+              </div>{" "}
+              <div className="p-0 max-h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Grade + section (class) filters — used to filter student dropdowns */}
+
+                <div className="mt-4">
+                  <PayStudentFeePanel
+                    students={filteredStudents}
+                    fees={fees}
+                    onPay={(payments) => {
+                      payments.forEach(upsert);
+                      setLastPayment(payments);
+                      setReceiptOpen(true);
+                      setTab("dashboard");
+                    }}
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           {tab === "filters" && (
@@ -485,7 +691,7 @@ export default function FeesPage() {
                       <MenuItem value="">
                         <em style={{ color: "#6b7280" }}>All students</em>
                       </MenuItem>
-                      {students.map((st) => (
+                      {filteredStudents.map((st) => (
                         <MenuItem key={st.id} value={st.id}>
                           {st.name}
                         </MenuItem>
@@ -553,7 +759,7 @@ export default function FeesPage() {
           )}
 
           {tab === "dashboard" && (
-            <div className="m-2 space-y-4">
+            <div className="m-2 space-y-4 max-h-[calc(100vh-155px)] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="text-xs text-gray-500">Rows</div>
@@ -751,8 +957,8 @@ function PayStudentFeePanel({
   const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
   const [amount, setAmount] = useState<number>(0);
   const [transactionType, setTransactionType] = useState<
-    "Cash" | "Cheque" | "DD"
-  >("Cash");
+    "" | "Cash" | "Cheque" | "DD"
+  >("");
   const [transactionDetailsOpen, setTransactionDetailsOpen] = useState(false);
   const [chequeNumber, setChequeNumber] = useState("");
   const [chequeExpiryDate, setChequeExpiryDate] = useState("");
@@ -777,6 +983,13 @@ function PayStudentFeePanel({
     () => fees.filter((f) => f.studentId === studentId && f.status === "Due"),
     [fees, studentId],
   );
+
+  useEffect(() => {
+    if (!studentId) return;
+    if (students.some((s) => s.id === studentId)) return;
+    setStudentId("");
+    setSelectedFeeIds([]);
+  }, [studentId, students]);
 
   const selectedFees = useMemo(
     () => unpaidFees.filter((f) => selectedFeeIds.includes(f.id)),
@@ -816,7 +1029,7 @@ function PayStudentFeePanel({
     setRoundup(false);
     setRoundupValue(10);
     setCouponDiscount(0);
-    setTransactionType("Cash");
+    setTransactionType("");
     setTransactionDetailsOpen(false);
     setChequeNumber("");
     setChequeExpiryDate("");
@@ -843,6 +1056,7 @@ function PayStudentFeePanel({
 
   const handlePay = () => {
     if (!studentId) return alert("Select a student.");
+    if (!transactionType) return alert("Select a transaction type.");
     if (selectedFeeIds.length === 0 && !includeTransportation)
       return alert("Select at least one fee to pay or include transportation.");
     if (calculatedTotal <= 0) return alert("Amount must be > 0.");
@@ -1004,20 +1218,6 @@ function PayStudentFeePanel({
                   Include Transportation Fee
                 </label>
               </div>
-              {includeTransportation && (
-                <div>
-                  <div className="text-xs text-gray-600 mb-1">
-                    Transportation Amount
-                  </div>
-                  <Input
-                    type="number"
-                    value={transportationAmount}
-                    onChange={(e) =>
-                      setTransportationAmount(Number(e.target.value))
-                    }
-                  />
-                </div>
-              )}
 
               <div className="flex items-center gap-2">
                 <input
@@ -1029,27 +1229,6 @@ function PayStudentFeePanel({
                 <label htmlFor="roundup" className="text-sm">
                   Round
                 </label>
-                {roundup && (
-                  <input
-                    type="number"
-                    value={roundupValue}
-                    onChange={(e) => setRoundupValue(Number(e.target.value))}
-                    className="w-16 px-2 py-1 text-xs border border-gray-300 rounded"
-                    placeholder="10"
-                  />
-                )}
-              </div>
-
-              <div>
-                <div className="text-xs text-gray-600 mb-1">
-                  Coupon/Discount
-                </div>
-                <Input
-                  type="number"
-                  value={couponDiscount}
-                  onChange={(e) => setCouponDiscount(Number(e.target.value))}
-                  placeholder="Discount amount"
-                />
               </div>
             </div>
           )}
@@ -1078,17 +1257,18 @@ function PayStudentFeePanel({
           </div>
           <div>
             <div className="text-xs text-gray-600 mb-1">Transaction Type</div>
-            <FormControl fullWidth size="small" >
+            <FormControl fullWidth size="small">
               <MuiSelect
                 value={transactionType}
                 onChange={(e) => {
                   setTransactionType(
-                    e.target.value as "Cash" | "Cheque" | "DD",
+                    e.target.value as "" | "Cash" | "Cheque" | "DD",
                   );
-                  setTransactionDetailsOpen(true);
+                  const next = e.target.value as "" | "Cash" | "Cheque" | "DD";
+                  if (next) setTransactionDetailsOpen(true);
                 }}
                 sx={{
-                  maxWidth: { sm: 200, md:600 },
+                  maxWidth: { sm: 200, md: 600 },
                   height: 36,
                   borderRadius: 2,
                   backgroundColor: "#fff",
@@ -1098,7 +1278,21 @@ function PayStudentFeePanel({
                     fontWeight: 600,
                   },
                 }}
+                displayEmpty
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return (
+                      <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                        Select Transaction Type
+                      </span>
+                    );
+                  }
+                  return selected;
+                }}
               >
+                <MenuItem value="">
+                  <em style={{ color: "#6b7280" }}>Select Transaction Type</em>
+                </MenuItem>
                 <MenuItem value="Cash">Cash</MenuItem>
                 <MenuItem value="Cheque">Cheque</MenuItem>
                 <MenuItem value="DD">DD</MenuItem>
@@ -1106,45 +1300,92 @@ function PayStudentFeePanel({
             </FormControl>
           </div>
         </div>
-        <div className="space-y-4">
-          <div className="text-xs text-gray-600 mb-1">Fee Breakdown</div>
-          <div className="border rounded p-3 bg-gray-50">
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Monthly Fees:</span>
-                <span>Rs {baseTotal}</span>
+        <div className="space-y-3">
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            Fee Breakdown
+          </Typography>
+          <Paper
+            variant="outlined"
+            sx={{ p: 2, bgcolor: "grey.50", borderRadius: 2 }}
+          >
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Monthly fees
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                  Rs {baseTotal}
+                </Typography>
               </div>
+
               {includeTransportation && (
-                <div className="flex justify-between">
-                  <span>Transportation:</span>
-                  <span>Rs {transportationAmount}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Transportation amount
+                  </Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    value={transportationAmount}
+                    onChange={(e) =>
+                      setTransportationAmount(Number(e.target.value))
+                    }
+                    sx={{ width: 160, bgcolor: "#fff" }}
+                  />
                 </div>
               )}
-              {couponDiscount > 0 && (
-                <div className="flex justify-between">
-                  <span>Discount:</span>
-                  <span>- Rs {couponDiscount}</span>
-                </div>
-              )}
+
               {roundup && (
-                <div className="flex justify-between">
-                  <span>
-                    Rounding (
-                    {roundupValue > 0
-                      ? `to nearest ${roundupValue}`
-                      : `${roundupValue}`}
-                    )
-                  </span>
-                  <span>Rs {calculatedTotal - subtotal}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Round (nearest)
+                  </Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    value={roundupValue}
+                    onChange={(e) => setRoundupValue(Number(e.target.value))}
+                    sx={{ width: 160, bgcolor: "#fff" }}
+                  />
                 </div>
               )}
-              <hr className="my-2" />
-              <div className="flex justify-between font-medium">
-                <span>Total:</span>
-                <span>Rs {calculatedTotal}</span>
+
+              <div className="flex items-center justify-between gap-3">
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Coupon / discount
+                </Typography>
+                <TextField
+                  type="number"
+                  size="small"
+                  value={couponDiscount}
+                  onChange={(e) => setCouponDiscount(Number(e.target.value))}
+                  sx={{ width: 160, bgcolor: "#fff" }}
+                />
+              </div>
+
+            
+              {couponDiscount > 0 && (
+                <div className="flex items-center justify-between">
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Discount
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                    - Rs {couponDiscount}
+                  </Typography>
+                </div>
+              )}
+             
+              <Divider sx={{ my: 1.25 }} />
+              <div className="flex items-center justify-between">
+                <Typography variant="body2" sx={{ fontWeight: 900 }}>
+                  Total
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 900 }}>
+                  Rs {calculatedTotal}
+                </Typography>
               </div>
             </div>
-          </div>
+          </Paper>
         </div>
       </div>
 
@@ -1374,8 +1615,8 @@ function EditFeeModal({
   const [studentId, setStudentId] = useState("");
   const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
   const [transactionType, setTransactionType] = useState<
-    "Cash" | "Cheque" | "DD"
-  >("Cash");
+    "" | "Cash" | "Cheque" | "DD"
+  >("");
   const [transactionDetailsOpen, setTransactionDetailsOpen] = useState(false);
   const [chequeNumber, setChequeNumber] = useState("");
   const [chequeExpiryDate, setChequeExpiryDate] = useState("");
@@ -1434,7 +1675,7 @@ function EditFeeModal({
     if (!open || !editing) return;
     setStudentId(editing.studentId);
     setSelectedFeeIds([]); // For editing, we don't pre-select fees
-    setTransactionType(editing.transactionType || "Cash");
+    setTransactionType((editing.transactionType as "Cash" | "Cheque" | "DD") || "");
     setTransactionDetailsOpen(false);
     setChequeNumber(editing.chequeNumber || "");
     setChequeExpiryDate(editing.chequeExpiryDate || "");
@@ -1457,6 +1698,7 @@ function EditFeeModal({
   const handleSave = () => {
     if (!editing) return;
     if (!studentId) return alert("Student is required.");
+    if (!transactionType) return alert("Transaction type is required.");
     if (selectedFeeIds.length === 0 && !includeTransportation)
       return alert(
         "Select at least one fee to edit or include transportation.",
@@ -1622,103 +1864,117 @@ function EditFeeModal({
         {studentId && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="transportation-edit"
+              <Checkbox
+                size="small"
                 checked={includeTransportation}
                 onChange={(e) => setIncludeTransportation(e.target.checked)}
+                inputProps={{ "aria-label": "Include Transportation Fee" }}
+                sx={{ p: 0, "& .MuiSvgIcon-root": { fontSize: 18 } }}
               />
-              <label htmlFor="transportation-edit" className="text-sm">
+              <label className="text-sm select-none">
                 Include Transportation Fee
               </label>
             </div>
-            {includeTransportation && (
-              <div>
-                <div className="text-xs text-gray-600 mb-1">
-                  Transportation Amount
-                </div>
-                <Input
-                  type="number"
-                  value={transportationAmount}
-                  onChange={(e) =>
-                    setTransportationAmount(Number(e.target.value))
-                  }
-                />
-              </div>
-            )}
 
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="roundup-edit"
+              <Checkbox
+                size="small"
                 checked={roundup}
                 onChange={(e) => setRoundup(e.target.checked)}
+                inputProps={{ "aria-label": "Round" }}
+                sx={{ p: 0, "& .MuiSvgIcon-root": { fontSize: 18 } }}
               />
-              <label htmlFor="roundup-edit" className="text-sm">
-                Round
-              </label>
-              {roundup && (
-                <input
-                  type="number"
-                  value={roundupValue}
-                  onChange={(e) => setRoundupValue(Number(e.target.value))}
-                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded"
-                  placeholder="10"
-                />
-              )}
-            </div>
-
-            <div>
-              <div className="text-xs text-gray-600 mb-1">Coupon/Discount</div>
-              <Input
-                type="number"
-                value={couponDiscount}
-                onChange={(e) => setCouponDiscount(Number(e.target.value))}
-                placeholder="Discount amount"
-              />
+              <label className="text-sm select-none">Round</label>
             </div>
           </div>
         )}
 
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Fee Breakdown</div>
-          <div className="border rounded p-3 bg-gray-50">
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Monthly Fees:</span>
-                <span>Rs {baseTotal}</span>
+        <div className="space-y-3">
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            Fee Breakdown
+          </Typography>
+          <Paper
+            variant="outlined"
+            sx={{ p: 2, bgcolor: "grey.50", borderRadius: 2 }}
+          >
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Monthly fees
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                  Rs {baseTotal}
+                </Typography>
               </div>
+
               {includeTransportation && (
-                <div className="flex justify-between">
-                  <span>Transportation:</span>
-                  <span>Rs {transportationAmount}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Transportation amount
+                  </Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    value={transportationAmount}
+                    onChange={(e) =>
+                      setTransportationAmount(Number(e.target.value))
+                    }
+                    sx={{ width: 160, bgcolor: "#fff" }}
+                  />
                 </div>
               )}
-              {couponDiscount > 0 && (
-                <div className="flex justify-between">
-                  <span>Discount:</span>
-                  <span>- Rs {couponDiscount}</span>
-                </div>
-              )}
+
               {roundup && (
-                <div className="flex justify-between">
-                  <span>
-                    Rounding (
-                    {roundupValue > 0
-                      ? `to nearest ${roundupValue}`
-                      : `${roundupValue}`}
-                    )
-                  </span>
-                  <span>Rs {calculatedTotal - subtotal}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Round (nearest)
+                  </Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    value={roundupValue}
+                    onChange={(e) => setRoundupValue(Number(e.target.value))}
+                    sx={{ width: 160, bgcolor: "#fff" }}
+                  />
                 </div>
               )}
-              <hr className="my-2" />
-              <div className="flex justify-between font-medium">
-                <span>Total:</span>
-                <span>Rs {calculatedTotal}</span>
+
+              <div className="flex items-center justify-between gap-3">
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Coupon / discount
+                </Typography>
+                <TextField
+                  type="number"
+                  size="small"
+                  value={couponDiscount}
+                  onChange={(e) => setCouponDiscount(Number(e.target.value))}
+                  sx={{ width: 160, bgcolor: "#fff" }}
+                />
+              </div>
+
+          
+              {couponDiscount > 0 && (
+                <div className="flex items-center justify-between">
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Discount
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                    - Rs {couponDiscount}
+                  </Typography>
+                </div>
+              )}
+       
+              <Divider sx={{ my: 1.25 }} />
+              <div className="flex items-center justify-between">
+                <Typography variant="body2" sx={{ fontWeight: 900 }}>
+                  Total
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 900 }}>
+                  Rs {calculatedTotal}
+                </Typography>
               </div>
             </div>
-          </div>
+          </Paper>
         </div>
 
         <div>
@@ -1727,8 +1983,9 @@ function EditFeeModal({
             <MuiSelect
               value={transactionType}
               onChange={(e) => {
-                setTransactionType(e.target.value as "Cash" | "Cheque" | "DD");
-                setTransactionDetailsOpen(true);
+                const next = e.target.value as "" | "Cash" | "Cheque" | "DD";
+                setTransactionType(next);
+                if (next) setTransactionDetailsOpen(true);
               }}
               sx={{
                 height: 36,
@@ -1740,7 +1997,21 @@ function EditFeeModal({
                   fontWeight: 600,
                 },
               }}
+              displayEmpty
+              renderValue={(selected) => {
+                if (!selected) {
+                  return (
+                    <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                      Select Transaction Type
+                    </span>
+                  );
+                }
+                return selected;
+              }}
             >
+              <MenuItem value="">
+                <em style={{ color: "#6b7280" }}>Select Transaction Type</em>
+              </MenuItem>
               <MenuItem value="Cash">Cash</MenuItem>
               <MenuItem value="Cheque">Cheque</MenuItem>
               <MenuItem value="DD">DD</MenuItem>

@@ -9,7 +9,7 @@ import { StudentProfileView, type ProfileTabId } from "@/components/StudentProfi
 import type { SmsDb } from "@/lib/models";
 import { getDb, getSelectedSessionId } from "@/lib/storage";
 import { ArrowBack } from "@mui/icons-material";
-import { Box, Tab, Tabs } from "@mui/material";
+import { Box, Divider, Tab, Tabs } from "@mui/material";
 
 const tabs: { id: ProfileTabId; label: string }[] = [
   { id: "profile", label: "Profile" },
@@ -68,8 +68,8 @@ function StudentViewContent() {
 
   return (
     <AppShell>
-      <div className="w-full p-4  space-y-4">
-        <div className="flex sticky top-0 z-50 bg-white p-2 justify-between items-center ">
+      <div className="w-full p-0   space-y-4">
+        <div className="flex  border-b border-gray-200  z-50 bg-white w-full p-2 justify-between items-center ">
         <div className="flex items-center gap-3">
             <Link
             href="/students"
@@ -87,8 +87,8 @@ function StudentViewContent() {
               bgcolor: "background.paper",
               border: "1px solid",
               borderColor: "grey.200",
-              borderRadius: 2,
-              px: 1,
+              borderRadius: 4,
+              p: 1,
             }}
           >
             <Tabs
@@ -100,7 +100,8 @@ function StudentViewContent() {
               aria-label="Student view tabs"
               sx={{
                 minHeight: 30,
-                "& .MuiTabs-indicator": { backgroundColor: "rgb(79 70 229)" },
+                "& .MuiTabs-indicator": { backgroundColor: "rgb(79 70 229)", display:"none" },
+                
               }}
             >
               {tabs.map(({ id, label }) => (
@@ -115,15 +116,19 @@ function StudentViewContent() {
                     minHeight: 44,
                     px: 2,
                     borderRadius: 999,
+                 
                     color: "rgb(55 65 81)",
-                    "&.Mui-selected": { color: "rgb(79 70 229)" },
+                    "&.Mui-selected": { color: "#ffffff", border:"none",  backgroundColor:"rgb(79 70 229)", },
+                 
                   }}
                 />
               ))}
             </Tabs>
           </Box>
         </div>
-        {student ? (
+     
+    <div className="p-4 max-h-[calc(100vh-160px)] overflow-y-auto">
+          {student ? (
           <>
             <StudentProfileView
               student={student}
@@ -147,6 +152,7 @@ function StudentViewContent() {
             </Link>
           </div>
         )}
+    </div>
       </div>
     </AppShell>
   );
